@@ -24,7 +24,6 @@ public:
     //TODO(HP): Change design. remove ip from constructor
     Ping(std::string ip);
     void ping_until_disconnect(int counter);
-    void stop_ping();
 private:
     void start_send();
     void handle_timeout();

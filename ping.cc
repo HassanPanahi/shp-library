@@ -20,12 +20,6 @@ void Ping::ping_until_disconnect(int counter)
     io_service_.run();
 }
 
-void Ping::stop_ping()
-{
-    timer_.cancel();
-    io_service_.stop();
-}
-
 void Ping::start_send()
 {
     std::string body("\"Hello!\" from Asio ping.");
