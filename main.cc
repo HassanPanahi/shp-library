@@ -1,7 +1,8 @@
 #include <iostream>
-#include "bounded_buffer.h"
 #include <vector>
-#include "tcpserver.h"
+
+#include "bounded_buffer.h"
+//#include "tcpserver.h"
 
 void buffer_test()
 {
@@ -25,7 +26,7 @@ void buffer_test()
         new_nums[i] = 200 + i;
     buffer.write(new_nums, 10);
     auto new_buffer = buffer;
-    int counter = new_buffer.size();
+    uint32_t counter = static_cast<uint32_t>(new_buffer.size());
     for (uint32_t i = 0 ; i < counter; i++)
         std::cout <<  new_buffer.read() << std::endl;
 
@@ -37,18 +38,18 @@ void buffer_test()
 
 }
 
-void tcp_server_test()
-{
-    TCPServer server(8585);
-    server.start();
-    while(1) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
-}
+//void tcp_server_test()
+//{
+////    TCPServer server(8585);
+////    server.start();
+////    while(1) {
+////        std::this_thread::sleep_for(std::chrono::seconds(1));
+////    }
+//}
 
 int main()
 {
-//    buffer_test();
-    tcp_server_test();
+    buffer_test();
+//    tcp_server_test();
     return 0;
 }

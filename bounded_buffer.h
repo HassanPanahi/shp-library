@@ -1,11 +1,13 @@
 #ifndef BOUNDEDBUFFER_H
 #define BOUNDEDBUFFER_H
 
-#include <boost/circular_buffer.hpp>
-#include <boost/call_traits.hpp>
-#include <condition_variable>
+#include <mutex>
 #include <functional>
-#include "mutex"
+#include <condition_variable>
+
+#include <boost/circular_buffer.hpp>
+
+#include "abstract_buffer.h"
 
 enum class LibErros {
     OK,
@@ -27,7 +29,7 @@ enum class LibErros {
 */
 
 template <class T>
-class BoundedBuffer {
+class BoundedBuffer : public AbstractBuffer<T> {
 public:
     using container_type = boost::circular_buffer<T>;
     using size_type = typename container_type::size_type;
@@ -37,6 +39,8 @@ public:
     explicit BoundedBuffer(const size_type capacity);
     BoundedBuffer(const BoundedBuffer& new_buffer);
     BoundedBuffer& operator=(const BoundedBuffer& new_buffer);
+
+    virtual BufferError write(param_type data, const size_t count);
 
     LibErros write(const param_type& item);
     LibErros try_write(param_type item);
@@ -50,6 +54,7 @@ public:
     template <std::size_t N>
     LibErros write(const value_type (&array)[N]);
 
+    virtual BufferError read(param_type data, const size_t count, const uint32_t timeout_ms = 0);
     value_type read();
     LibErros try_read(value_type& item);
     LibErros try_read_for(value_type& item, const uint32_t duration_ms);
@@ -57,6 +62,11 @@ public:
     bool empty() const;
     size_type size() const;
     size_type capacity() const;
+
+
+    virtual BufferError clear_buffer();
+    virtual BufferError erase_buffer();
+    virtual uint32_t get_remain();
 
 private:
     bool is_not_full() const;
