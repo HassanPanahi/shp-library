@@ -29,13 +29,6 @@ void buffer_test()
     uint32_t counter = static_cast<uint32_t>(new_buffer.size());
     for (uint32_t i = 0 ; i < counter; i++)
         std::cout <<  new_buffer.read() << std::endl;
-
-
-//    BoundedBuffer<int> buffer1(10);
-//    BoundedBuffer<int> buffer2(buffer1); // Copy constructor is called here.
-//    BoundedBuffer<int> buffer3 = buffer1;
-
-
 }
 
 //void tcp_server_test()

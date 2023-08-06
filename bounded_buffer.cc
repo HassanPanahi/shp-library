@@ -21,16 +21,9 @@ BoundedBuffer<T>& BoundedBuffer<T>::operator=(const BoundedBuffer& new_buffer) {
     return *this;
 }
 
-template<class T>
-BufferError BoundedBuffer<T>::write(BoundedBuffer::param_type data, const size_t count)
-{
-    (void) data;
-    (void) count;
-    return BufferError::BUF_NODATA;
-}
 
 template <class T>
-LibErros BoundedBuffer<T>::write(const param_type& item) {
+LibErros BoundedBuffer<T>::write(param_type item) {
     std::unique_lock<std::mutex> lock(m_mutex);
     m_not_full.wait(lock, [this] { return is_not_full(); });
     m_container.push_front(item);
@@ -68,6 +61,18 @@ LibErros BoundedBuffer<T>::try_write_for(param_type item, const uint32_t duratio
     return ret;
 }
 
+template<class T>
+LibErros BoundedBuffer<T>::write(const param_type * const array, std::size_t size)
+{
+    auto ret = LibErros::OK;
+    for (std::size_t i = 0; i < size; ++i) {
+        ret = write(array[i]);
+        if (ret != LibErros::OK)
+            break;
+    }
+    return ret;
+}
+
 template <class T>
 template <typename Container>
 LibErros BoundedBuffer<T>::write(const Container& container) {
@@ -83,29 +88,9 @@ LibErros BoundedBuffer<T>::write(const Container& container) {
 }
 
 template <class T>
-LibErros BoundedBuffer<T>::write(const value_type* array, std::size_t size) {
-    auto ret = LibErros::OK;
-    for (std::size_t i = 0; i < size; ++i) {
-        ret = write(array[i]);
-        if (ret != LibErros::OK)
-            break;
-    }
-    return ret;
-}
-
-template<class T>
-BufferError BoundedBuffer<T>::read(BoundedBuffer::param_type data, const size_t count, const uint32_t timeout_ms)
-{
-    (void) data;
-    (void) count;
-    (void) timeout_ms;
-    return BufferError::BUF_NODATA;
-
-}
-
-template <class T>
 template <std::size_t N>
-LibErros BoundedBuffer<T>::write(const value_type (&array)[N]) {
+LibErros BoundedBuffer<T>::write(const param_type (&array)[N])
+{
     auto ret = write(array, N);
     return ret;
 }
@@ -122,7 +107,7 @@ typename BoundedBuffer<T>::value_type BoundedBuffer<T>::read() {
 }
 
 template <class T>
-LibErros BoundedBuffer<T>::try_read(value_type& item) {
+LibErros BoundedBuffer<T>::try_read(param_type &item) {
     auto ret = LibErros::OK;
     std::unique_lock<std::mutex> lock(m_mutex);
     if (!is_not_empty()) {
@@ -130,14 +115,13 @@ LibErros BoundedBuffer<T>::try_read(value_type& item) {
     } else {
         item = m_container.back();
         m_container.pop_back();
-        lock.unlock();
         m_not_full.notify_one();
     }
     return ret;
 }
 
 template <class T>
-LibErros BoundedBuffer<T>::try_read_for(value_type& item, const uint32_t duration_ms) {
+LibErros BoundedBuffer<T>::try_read_for(param_type& item, const uint32_t duration_ms) {
     auto ret = LibErros::OK;
     std::unique_lock<std::mutex> lock(m_mutex);
     bool is_ok = m_not_empty.wait_for(lock, std::chrono::milliseconds(duration_ms), [this] { return is_not_empty(); });
@@ -146,7 +130,6 @@ LibErros BoundedBuffer<T>::try_read_for(value_type& item, const uint32_t duratio
     } else {
         item = m_container.back();
         m_container.pop_back();
-        lock.unlock();
         m_not_full.notify_one();
     }
     return ret;
@@ -168,16 +151,16 @@ typename BoundedBuffer<T>::size_type BoundedBuffer<T>::capacity() const {
 }
 
 template<class T>
-BufferError BoundedBuffer<T>::clear_buffer()
+LibErros BoundedBuffer<T>::clear_buffer()
 {
-    return BufferError::BUF_NODATA;
+    return LibErros::Buffer_Empty;
 
 }
 
 template<class T>
-BufferError BoundedBuffer<T>::erase_buffer()
+LibErros BoundedBuffer<T>::erase_buffer()
 {
-    return BufferError::BUF_NODATA;
+    return LibErros::Buffer_Empty;
 
 }
 
