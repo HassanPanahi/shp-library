@@ -6,4 +6,4 @@ add_executable(buffer buffer.cc)
 
 include_directories(..)
 
-target_link_libraries(buffer shp)
+target_link_libraries(buffer shp gtest)

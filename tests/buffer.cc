@@ -1,14 +1,13 @@
 #include <iostream>
 #include <vector>
 
+#include <gtest/gtest.h>
+
 #include "bounded_buffer.h"
-//#include "tcpserver.h"
-//#pragma GCC diagnostic error "-Wconversion"
 
 void buffer_test()
 {
     BoundedBuffer<int> buffer(50);
-
     buffer.write(10);
 
     std::vector<int> nums{4, 3};
@@ -31,18 +30,16 @@ void buffer_test()
         std::cout <<  new_buffer.read() << std::endl;
 }
 
-//void tcp_server_test()
-//{
-////    TCPServer server(8585);
-////    server.start();
-////    while(1) {
-////        std::this_thread::sleep_for(std::chrono::seconds(1));
-////    }
-//}
+TEST(MemoryLeak, Constructor) {
 
-int main()
+
+
+    ASSERT_TRUE(1 == 1);
+}
+
+
+int main(int argc, char** argv)
 {
-    buffer_test();
-//    tcp_server_test();
-    return 0;
+    testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
