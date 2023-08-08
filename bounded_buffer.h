@@ -22,10 +22,11 @@
 template <class T>
 class BoundedBuffer : public AbstractBuffer<T> {
 public:
-    using container_type = boost::circular_buffer<T>;
-    using size_type = typename container_type::size_type;
-    using value_type = typename container_type::value_type;
+    using container = boost::circular_buffer<T>;
+    using size_type = typename container::size_type;
+    using value_type = typename container::value_type;
     using param_type = typename AbstractBuffer<T>::param_type;
+    using AbstractBuffer<T>::write;
 
     explicit BoundedBuffer(const size_type capacity);
     BoundedBuffer(const BoundedBuffer& new_buffer);
@@ -35,17 +36,9 @@ public:
     virtual LibErros try_write(param_type item) override;
     virtual LibErros try_write_for(param_type item, const uint32_t duration_ms) override;
 
-    virtual LibErros write(const param_type* const array, std::size_t size);
-
-    template <typename Container>
-    LibErros write(const Container& container);
-
-    template <std::size_t N>
-    LibErros write(const param_type (&array)[N]);
-
     virtual value_type read() override;
     virtual LibErros try_read(param_type& item) override;
-    virtual LibErros try_read_for(param_type &item, const uint32_t duration_ms) ;
+    virtual LibErros try_read_for(param_type &item, const uint32_t duration_ms) override;
 
     bool empty() const;
     size_type size() const;
@@ -58,10 +51,10 @@ public:
 private:
     bool is_not_full() const;
     bool is_not_empty() const;
-    container_type m_container;
-    std::mutex m_mutex;
-    std::condition_variable m_not_empty;
-    std::condition_variable m_not_full;
+    container container_;
+    std::mutex mutex_;
+    std::condition_variable not_empty_;
+    std::condition_variable not_full_;
 };
 
 #include "bounded_buffer.cc"

@@ -12,7 +12,6 @@ class MessageExtractor : public AbstractMessageExtractor
 public:
     MessageExtractor(std::shared_ptr<AbstractPacketStructure> packet_structure,  std::shared_ptr<AbstractBuffer> buffer);
     std::shared_ptr<AbstractSerializableMessage> find_message();
-    std::shared_ptr<AbstractBuffer> get_buffer_() const;
     std::shared_ptr<AbstractPacketStructure> get_packet_structure() const { return packet_structure_; }
 
 private:
@@ -24,7 +23,6 @@ private:
 
     //Extractor
     std::shared_ptr<AbstractPacketStructure> packet_structure_;
-    std::shared_ptr<AbstractBuffer> buffer_;
     std::vector<std::shared_ptr<Section>> packet_sections_;
 };
 

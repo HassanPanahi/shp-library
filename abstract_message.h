@@ -300,8 +300,9 @@ private:
     }
     bool is_cmd_ok() {
 
+        return true;
     }
-    bool is_length_include_ok (LengthSection* length) {
+    bool is_length_include_ok (/*LengthSection* length*/) {
         if (length_->include & PacketSections::Data && !is_data_exist_)
             get_packet_define_error(PacketDefineErrors::Length_Include_Data_But_Packet_Not);
         if (length_->include & PacketSections::Footer && !is_footer_exist_)
@@ -312,6 +313,7 @@ private:
             get_packet_define_error(PacketDefineErrors::Length_Include_CMD_But_Packet_Not);
         if (length_->include & PacketSections::CRC && !is_crc_exist_)
             get_packet_define_error(PacketDefineErrors::Length_Include_CRC_But_Packet_Not);
+        return true;
     }
 
     void set_crc_include_sections(CRCSection* crc_) {
@@ -368,16 +370,14 @@ class AbstractMessageExtractor {
 public:
 //    AbstractMessageExtractor(AbstractPacketSections* extractor, AbstractBuffer* buffer)
     virtual std::shared_ptr<AbstractPacketStructure> get_packet_structure() const =  0;
-    virtual std::shared_ptr<AbstractBuffer> get_buffer_() const = 0;
+//    template <typename T>
+//    std::shared_ptr<AbstractBuffer<T>> get_buffer() const = 0;
     virtual std::shared_ptr<AbstractSerializableMessage> find_message() = 0;
 
     virtual ~AbstractMessageExtractor() {}
-private:
-
 
 protected:
     AbstractPacketStructure* extractor_;
-    AbstractBuffer* buffer_;
 };
 
 } // namespace peripheral

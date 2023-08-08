@@ -13,6 +13,10 @@ void buffer_test()
     std::vector<int> nums{4, 3};
     buffer.write(nums);
 
+
+    std::array<int, 3> nums3{85, 85};
+    buffer.write(nums3);
+
     const uint32_t buf_size = 20;
     int a[buf_size];
     for (uint32_t i = 0; i < buf_size; i++)
@@ -40,6 +44,7 @@ TEST(MemoryLeak, Constructor) {
 
 int main(int argc, char** argv)
 {
+    buffer_test();
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
