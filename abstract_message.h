@@ -27,7 +27,7 @@ class AbstractCRC {
 public:
     //!
     //! \brief is_valid check data in packet is valid or not.
-    //! \param data  include data section in packet
+    //! \param data include data section in packet
     //! \param data_size data section size in packet
     //! \param crc_data data of crc
     //! \param crc_size size of crc
@@ -368,10 +368,9 @@ private:
 
 class AbstractMessageExtractor {
 public:
-//    AbstractMessageExtractor(AbstractPacketSections* extractor, AbstractBuffer* buffer)
     virtual std::shared_ptr<AbstractPacketStructure> get_packet_structure() const =  0;
-//    template <typename T>
-//    std::shared_ptr<AbstractBuffer<T>> get_buffer() const = 0;
+    template <typename T>
+    std::shared_ptr<AbstractBuffer<T>> get_buffer() const = 0;
     virtual std::shared_ptr<AbstractSerializableMessage> find_message() = 0;
 
     virtual ~AbstractMessageExtractor() {}

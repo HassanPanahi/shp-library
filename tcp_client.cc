@@ -7,13 +7,11 @@
 namespace shp {
 namespace network {
 
-TCPClient::TCPClient(const TCPSocketShared& socket)
+TCPClient::TCPClient(const BoostAsioTCPSocketShared& socket)
     : ip_(socket->remote_endpoint().address().to_string()), port_(socket->remote_endpoint().port()), socket_(socket)
 {
     initialize();
     read_handler_ = boost::bind(&TCPClient::handle_read_data, this, boost::asio::placeholders::error ,boost::asio::placeholders::bytes_transferred);
-    socket_->async_receive(boost::asio::buffer(data_.data(), data_.size()), read_handler_);
-    is_connected_ = true;
 }
 
 TCPClient::TCPClient(const std::string& ip, const unsigned short port)
@@ -23,6 +21,13 @@ TCPClient::TCPClient(const std::string& ip, const unsigned short port)
     work_ = boost::make_shared<boost::asio::io_context::work>(io_context_);
     socket_ = std::make_shared<boost::asio::ip::tcp::socket>(io_context_);
     initialize();
+}
+
+void TCPClient::start()
+{
+    socket_->async_receive(boost::asio::buffer(data_.data(), data_.size()), read_handler_);
+    is_connected_ = true;
+    connect();
 }
 
 void TCPClient::initialize()
@@ -93,7 +98,7 @@ boost::signals2::connection TCPClient::notify_me_when_disconnected(std::function
     return disconnect_connections_.connect(func);
 }
 
-boost::signals2::connection TCPClient::notify_me_data_received(std::function<void (const char *, size_t)> func)
+boost::signals2::connection TCPClient::notify_me_when_data_received(std::function<void (const char *, size_t)> func)
 {
     //    is_buffered_data_ = false;
     return data_received_connections_.connect(func);

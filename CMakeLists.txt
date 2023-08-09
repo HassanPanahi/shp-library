@@ -7,7 +7,7 @@ find_package(Threads)
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-file (GLOB Srcs bounded_buffer.h abstract_buffer.h tcp_client.*)
+file (GLOB Srcs bounded_buffer.h abstract_buffer.h tcp_client.* abstract_message.h message_extractor.h message_extractor.cc)
 
 
 add_library(${PROJECT_NAME} ${Srcs})

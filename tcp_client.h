@@ -10,7 +10,7 @@
 
 #define MAX_LENGTH (1 * 1024 *  1024)
 
-using TCPSocketShared = std::shared_ptr<boost::asio::ip::tcp::socket>;
+using BoostAsioTCPSocketShared = std::shared_ptr<boost::asio::ip::tcp::socket>;
 using ReadFunctionPtr = boost::function<void (const boost::system::error_code error, const size_t bytes_transferred)>;
 
 namespace shp {
@@ -18,10 +18,9 @@ namespace network {
 
 class TCPClient {
 public:
-    TCPClient(const TCPSocketShared& socket);
+    TCPClient(const BoostAsioTCPSocketShared& socket);
     TCPClient(const std::string &ip, const unsigned short port);
-
-    bool connect();
+    void start();
     void disconnect();
     size_t send(const char* data, const uint32_t size);
     void async_send(const char* data, const uint32_t size, std::function<void (size_t)> func);
@@ -30,13 +29,15 @@ public:
     unsigned short get_port() const;
     bool is_connected() const;
 
+
     boost::signals2::connection notify_me_when_disconnected(std::function<void ()>& func);
-    boost::signals2::connection notify_me_data_received(std::function<void (const char * data, size_t size)> func);
+    boost::signals2::connection notify_me_when_data_received(std::function<void (const char * data, size_t size)> func);
 
     void do_buffer_data(const bool state);
 
     ~TCPClient();
 private:
+    bool connect();
     void initialize();
     void io_context_thread();
     void handle_read_data(const boost::system::error_code error, const size_t bytes_transferred);
@@ -49,7 +50,7 @@ private:
 
     bool do_buffer_data_;
 
-    std::shared_ptr<boost::asio::ip::tcp::socket> socket_;
+    BoostAsioTCPSocketShared socket_;
     boost::shared_ptr<boost::asio::io_context::work> work_;
     ReadFunctionPtr read_handler_;
     //TODO(HP): change this variabe to char * because code will be crash in big size
