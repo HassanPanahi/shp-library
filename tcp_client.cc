@@ -11,8 +11,8 @@ TCPClient::TCPClient(const TCPSocketShared& socket)
     : ip_(socket->remote_endpoint().address().to_string()), port_(socket->remote_endpoint().port()), socket_(socket)
 {
     initialize();
-    auto read_handler = boost::bind(&TCPClient::handle_read_data, this, boost::asio::placeholders::error ,boost::asio::placeholders::bytes_transferred);
-    socket_->async_receive(boost::asio::buffer(data_.data(), data_.size()), read_handler);
+    read_handler_ = boost::bind(&TCPClient::handle_read_data, this, boost::asio::placeholders::error ,boost::asio::placeholders::bytes_transferred);
+    socket_->async_receive(boost::asio::buffer(data_.data(), data_.size()), read_handler_);
     is_connected_ = true;
 }
 
@@ -45,8 +45,7 @@ bool TCPClient::connect()
             is_connected_ = false;
         } else {
             threads_group_.create_thread(boost::bind(&TCPClient::io_context_thread, this));
-            auto read_handler = boost::bind(&TCPClient::handle_read_data, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred);
-            socket_->async_receive(boost::asio::buffer(data_.data(), data_.size()), read_handler);
+            socket_->async_receive(boost::asio::buffer(data_.data(), data_.size()), read_handler_);
             is_connected_ = true;
         }
     }
@@ -74,8 +73,7 @@ void TCPClient::handle_read_data(const boost::system::error_code error, const si
         else
             data_received_connections_(reinterpret_cast<char*>(data_.data()), bytes_transferred);
 
-        auto read_handler = boost::bind(&TCPClient::handle_read_data, this, boost::asio::placeholders::error ,boost::asio::placeholders::bytes_transferred);
-        socket_->async_receive(boost::asio::buffer(data_.data(), data_.size()), read_handler);
+        socket_->async_receive(boost::asio::buffer(data_.data(), data_.size()), read_handler_);
     } else {
         if (is_connected_) {
             is_connected_ = false;

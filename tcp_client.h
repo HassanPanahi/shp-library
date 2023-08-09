@@ -10,7 +10,8 @@
 
 #define MAX_LENGTH (1 * 1024 *  1024)
 
-typedef std::shared_ptr<boost::asio::ip::tcp::socket> TCPSocketShared;
+using TCPSocketShared = std::shared_ptr<boost::asio::ip::tcp::socket>;
+using ReadFunctionPtr = boost::function<void (const boost::system::error_code error, const size_t bytes_transferred)>;
 
 namespace shp {
 namespace network {
@@ -37,8 +38,8 @@ public:
     ~TCPClient();
 private:
     void initialize();
-    void handle_read_data(const boost::system::error_code error, const size_t bytes_transferred);
     void io_context_thread();
+    void handle_read_data(const boost::system::error_code error, const size_t bytes_transferred);
 
     std::string ip_;
     unsigned short port_;
@@ -50,7 +51,7 @@ private:
 
     std::shared_ptr<boost::asio::ip::tcp::socket> socket_;
     boost::shared_ptr<boost::asio::io_context::work> work_;
-
+    ReadFunctionPtr read_handler_;
     //TODO(HP): change this variabe to char * because code will be crash in big size
     std::array<uint8_t, MAX_LENGTH> data_;
     boost::signals2::signal <void (char* const data, const size_t size)> data_received_connections_;
