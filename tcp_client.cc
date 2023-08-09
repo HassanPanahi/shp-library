@@ -1,5 +1,6 @@
 #include "tcp_client.h"
 #include <iostream>
+#include <thread>
 #include <boost/asio/detail/posix_thread.hpp>
 #include "bounded_buffer.h"
 
