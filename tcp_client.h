@@ -7,6 +7,7 @@
 
 #include <boost/mpl/size.hpp>
 #include "abstract_buffer.h"
+#include "abstract_message.h"
 
 #define MAX_LENGTH (1 * 1024 *  1024)
 
@@ -16,14 +17,33 @@ using ReadFunctionPtr = boost::function<void (const boost::system::error_code er
 namespace shp {
 namespace network {
 
-class TCPClient {
+class AbstractTCPClient
+{
+public:
+    virtual void start() = 0;
+    virtual unsigned short get_port() const = 0;
+    virtual std::string get_ip() const = 0;
+    virtual void disconnect() = 0;
+    virtual size_t send(const char* data, const size_t size) = 0;
+    virtual void async_send(const char* data, const size_t size, std::function<void (size_t)> func) = 0;
+    virtual boost::signals2::connection notify_me_when_disconnected(std::function<void ()>& func) = 0;
+    virtual boost::signals2::connection notify_me_when_data_received(std::function<void (const char * data, size_t size)> func) = 0;
+    virtual boost::signals2::connection notify_me_when_new_packet_found(std::function<void (const char * data, size_t size)> func) = 0;
+    virtual void set_extractor(std::shared_ptr<AbstractMessageExtractor> extractor) = 0;
+    virtual void get_next_packet() = 0;
+    virtual void set_extractor_packager() = 0;
+    virtual bool is_connected() const = 0;
+    virtual ~AbstractTCPClient() {}
+};
+
+class TCPClient : public AbstractTCPClient{
 public:
     TCPClient(const BoostAsioTCPSocketShared& socket);
     TCPClient(const std::string &ip, const unsigned short port);
     void start();
     void disconnect();
-    size_t send(const char* data, const uint32_t size);
-    void async_send(const char* data, const uint32_t size, std::function<void (size_t)> func);
+    size_t send(const char* data, const size_t size);
+    void async_send(const char* data, const size_t size, std::function<void (size_t)> func);
 
     std::string get_ip() const;
     unsigned short get_port() const;
@@ -63,6 +83,9 @@ private:
     boost::thread_group threads_group_;
     boost::asio::io_context io_context_;
     boost::asio::ip::tcp::endpoint endpoint_;
+
+    // AbstractTCPClient interface
+public:
 };
 
 }

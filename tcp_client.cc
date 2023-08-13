@@ -57,14 +57,14 @@ bool TCPClient::connect()
     return is_connected_;
 }
 
-size_t TCPClient::send(const char *data, const uint32_t size)
+size_t TCPClient::send(const char *data, const size_t size)
 {
     if (is_connected_ && size != 0 && data != nullptr)
         return socket_->send(boost::asio::buffer(data, size));
     return 0;
 }
 
-void TCPClient::async_send(const char *data, const uint32_t size, std::function<void (size_t)> func)
+void TCPClient::async_send(const char *data, const size_t size, std::function<void (size_t)> func)
 {
     if (is_connected_ && size != 0 && data != nullptr)
         socket_->async_send(boost::asio::buffer(data, size), boost::bind(func, boost::asio::placeholders::bytes_transferred));

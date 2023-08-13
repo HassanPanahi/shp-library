@@ -59,6 +59,14 @@ public:
     virtual LibErros try_read(param_type& item) = 0;
     virtual LibErros try_read_for(param_type& item, const uint32_t duration_ms) = 0;
 
+    virtual LibErros read(param_type * const array, std::size_t size)
+    {
+        auto ret = LibErros::OK;
+        for (std::size_t i = 0; i < size; ++i)
+            array[i] = read();
+        return ret;
+    }
+
     virtual LibErros clear_buffer() = 0;
     virtual LibErros erase_buffer() = 0;
     virtual uint32_t get_remain() = 0;

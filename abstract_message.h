@@ -8,10 +8,8 @@
 
 #include "abstract_buffer.h"
 
-namespace hp {
-namespace peripheral {
-
-
+namespace shp {
+namespace network {
 
 enum PacketSections {
     Header  = 1 << 0,
@@ -368,11 +366,8 @@ private:
 
 class AbstractMessageExtractor {
 public:
-    virtual std::shared_ptr<AbstractPacketStructure> get_packet_structure() const =  0;
-    template <typename T>
-    std::shared_ptr<AbstractBuffer<T>> get_buffer() const = 0;
     virtual std::shared_ptr<AbstractSerializableMessage> find_message() = 0;
-
+    virtual std::shared_ptr<AbstractPacketStructure> get_packet_structure() const =  0;
     virtual ~AbstractMessageExtractor() {}
 
 protected:

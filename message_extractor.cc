@@ -1,12 +1,14 @@
 #include "message_extractor.h"
+#include "bounded_buffer.h"
 #include <iostream>
 
-namespace hp {
-namespace peripheral {
+namespace shp {
+namespace network {
 
-MessageExtractor::MessageExtractor(std::shared_ptr<AbstractPacketStructure> packet_structure,  std::shared_ptr<AbstractBuffer> buffer)
-    : packet_structure_(packet_structure), buffer_(buffer)
+MessageExtractor::MessageExtractor(std::shared_ptr<AbstractPacketStructure> packet_structure)
+    : packet_structure_(packet_structure)
 {
+    buffer_ = std::make_shared<BoundedBuffer<uint8_t>>(1024);
     packet_structure_->init_packet();
     packet_sections_ = packet_structure_->get_packet_structure();
     packet_structure_->is_packet_sections_correct(packet_sections_);
@@ -115,11 +117,6 @@ std::shared_ptr<AbstractSerializableMessage> MessageExtractor::find_message()
     return msg;
 }
 
-std::shared_ptr<AbstractBuffer> MessageExtractor::get_buffer_() const
-{
-    return buffer_;
-}
-
 void MessageExtractor::find_header()
 {
     //    uint32_t header_index = 0;
@@ -183,7 +180,7 @@ std::string MessageExtractor::get_next_bytes(uint32_t size)
     std::string data;
     data.resize(size);
     for (uint32_t i = 0; i < size; i++)
-        data[i] = buffer_->read_next_byte();
+        data[i] = buffer_->read();
     return data;
 }
 

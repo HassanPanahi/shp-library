@@ -9,7 +9,7 @@
 void tcp_client()
 {
     auto tcp_client = std::make_shared<shp::network::TCPClient>("0.0.0.0", 8585);
-    tcp_client->connect();
+    tcp_client->start();
     tcp_client->send("salam", 5);
     while(1) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
