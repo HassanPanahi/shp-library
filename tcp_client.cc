@@ -88,6 +88,26 @@ void TCPClient::handle_read_data(const boost::system::error_code error, const si
     }
 }
 
+boost::signals2::connection TCPClient::notify_me_when_new_packet_found(std::function<void (const char *, size_t)> func)
+{
+
+}
+
+void TCPClient::set_extractor(std::shared_ptr<AbstractMessageExtractor> extractor)
+{
+
+}
+
+void TCPClient::get_next_packet()
+{
+
+}
+
+void TCPClient::set_extractor_packager()
+{
+
+}
+
 void TCPClient::do_buffer_data(const bool state)
 {
     do_buffer_data_ = state;

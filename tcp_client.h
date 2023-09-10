@@ -86,6 +86,13 @@ private:
 
     // AbstractTCPClient interface
 public:
+
+    // AbstractTCPClient interface
+public:
+    boost::signals2::connection notify_me_when_new_packet_found(std::function<void (const char *, size_t)> func);
+    void set_extractor(std::shared_ptr<AbstractMessageExtractor> extractor);
+    void get_next_packet();
+    void set_extractor_packager();
 };
 
 }
