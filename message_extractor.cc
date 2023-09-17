@@ -16,17 +16,18 @@ MessageExtractor::MessageExtractor(const std::shared_ptr<AbstractPacketStructure
 
 void MessageExtractor::handle_header_section()
 {
-//    uint32_t header_index = 0;
-//    while(1) {
-//        if (header_index == header_->content.size())
-//            break;
-//        char header = buffer_->read_next_byte();
-//        if (header_->content[header_index] ==  header)
-//            header_index++;
-//        else {
-//            header_index = 0;
-//        }
-//    }
+    uint32_t header_index = 0;
+    auto header_section = packet_structure_->get_header();
+    while(1) {
+        if (header_index == header_section->content.size())
+            break;
+        char header = buffer_->read();
+        if (header_section->content[header_index] == header)
+            header_index++;
+        else {
+            header_index = 0;
+        }
+    }
 }
 
 void MessageExtractor::handle_cmd_section()
@@ -86,21 +87,6 @@ std::shared_ptr<AbstractPacketStructure> MessageExtractor::get_next_message()
 {
     std::shared_ptr<AbstractPacketStructure> msg = nullptr;
     bool is_get_next_message = false;
-    //        std::map<PacketSections, std::string> crc_check_data;
-    //        std::map<PacketSections, std::string> packet_sections;
-    //        std::string footer;
-    //        std::string packet;
-    //        std::string data;
-    //        std::string cmd;
-    //        std::string len;
-    //        std::string crc;
-    //        bool is_footer_ok = true;
-    //        bool is_cmd_null = false;
-    //        bool is_crc_ok = true;
-    //        bool can_find_length = false;
-    //        uint32_t data_len = 0;
-    //        uint32_t data_size = 0;
-
     while (!is_get_next_message) {
 
         for (const auto &section : packet_sections_) {

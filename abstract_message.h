@@ -224,7 +224,7 @@ public:
     inline Section_Shared get_cmd()        const { return cmd_;    }
     inline Section_Shared get_crc()        const { return crc_;    }
     inline Section_Shared get_data()       const { return data_;   }
-    inline Section_Shared get_header()     const { return header_; }
+    inline std::shared_ptr<HeaderSection> get_header()     const { return header_; }
     inline Section_Shared get_length()     const { return length_; }
     inline Section_Shared get_footer()     const { return footer_; }
 
