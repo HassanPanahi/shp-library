@@ -13,9 +13,10 @@ using Section_Handler_FuncPtr = std::function<void ()>;
 class MessageExtractor : public AbstractMessageExtractor
 {
 public:
-    MessageExtractor(std::shared_ptr<AbstractPacketStructure> packet_structure);
-    std::shared_ptr<AbstractSerializableMessage> find_message();
+    MessageExtractor(const std::shared_ptr<AbstractPacketStructure>& packet_structure);
+    std::shared_ptr<AbstractPacketStructure> get_next_message();
     std::shared_ptr<AbstractPacketStructure> get_packet_structure() const { return packet_structure_; }
+    PacketDefineErrors get_packet_error() const;
 
 private:
     void registre_commands();
@@ -37,6 +38,9 @@ private:
     std::vector<std::shared_ptr<Section>> packet_sections_;
     std::shared_ptr<AbstractPacketStructure> packet_structure_;
     std::map<PacketSections, Section_Handler_FuncPtr> sections_map_;
+
+    // AbstractMessageExtractor interface
+public:
 };
 
 } // namespace peripheral

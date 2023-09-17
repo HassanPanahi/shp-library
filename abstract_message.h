@@ -151,6 +151,7 @@ enum class PacketErrors{
 };
 
 enum class PacketDefineErrors{
+    PACKET_OK,
     CRC_Include_Data_But_Packet_Not,
     CRC_Include_Footer_But_Packet_Not,
     CRC_Include_Header_But_Packet_Not,
@@ -163,45 +164,16 @@ enum class PacketDefineErrors{
     Length_Include_CMD_But_Packet_Not,
     Packet_Not_Include_Header,
     CMD_Factory_Null,
-    CRC_Checker_Null,
-    No_Error
+    CRC_Checker_Null
 };
+
+using Section_Shared = std::shared_ptr<Section>;
 
 class AbstractPacketStructure {
 public:
-    void init_packet() {
-        init_packet_structure(packet_);
-    }
-    virtual void init_packet_structure(std::vector<std::shared_ptr<Section>>& packet_section) = 0;
-    virtual void packet_section_error(const PacketErrors error, const std::map<PacketSections, std::string>& packet) = 0;
-    std::vector<std::shared_ptr<Section>>& get_packet_structure() { return packet_; }
+    virtual std::vector<std::shared_ptr<Section>> get_packet_structure() = 0;
 
-    virtual void get_packet_define_error(const PacketDefineErrors error) {
-        switch (error) {
-        case PacketDefineErrors::CRC_Include_CMD_But_Packet_Not : {
-            std::cout << "CRC_Include_CMD_But_Packet_Not" << std::endl;
-            break;
-        }
-        case PacketDefineErrors::CRC_Include_Header_But_Packet_Not : {
-            std::cout << "CRC_Include_Header_But_Packet_Not" << std::endl;
-            break;
-        }
-        case PacketDefineErrors::Length_Include_CMD_But_Packet_Not : {
-            std::cout << "Length_Include_CMD_But_Packet_Not" << std::endl;
-            break;
-        }
-        case PacketDefineErrors::Length_Include_Header_But_Packet_Not : {
-            std::cout << "Length_Include_Header_But_Packet_Not" << std::endl;
-            break;
-        }
-        default: {
-            std::cout << "There is an unknown error" << std::endl;
-            break;
-        }
-        }
-    };
-
-    bool is_packet_sections_correct(const std::vector<std::shared_ptr<Section>>& packet_sections) {
+    void analyze_packet_sections(const std::vector<std::shared_ptr<Section>>& packet_sections) {
         for (auto section : packet_sections) {
             auto type = section->get_type();
             switch (type) {
@@ -233,7 +205,6 @@ public:
                 crc_ = std::dynamic_pointer_cast<CRCSection>(section);
                 crc_size_ = crc_->size_bytes;
                 is_crc_exist_ = true;
-
                 break;
             }
             case PacketSections::Footer : {
@@ -248,73 +219,74 @@ public:
             }
             }
         }
-        return true;
     }
 
-    inline bool is_length_include_header() const { return is_length_include_header_; }
-    inline bool is_length_include_footer() const { return is_length_include_footer_; }
-    inline bool is_length_include_length() const { return is_length_include_length_; }
-    inline bool is_length_include_data()   const { return is_length_include_data_;   }
-    inline bool is_length_include_cmd()    const { return is_length_include_cmd_;    }
-    inline bool is_length_include_crc()    const { return is_length_include_crc_;    }
+    inline Section_Shared get_cmd()        const { return cmd_;    }
+    inline Section_Shared get_crc()        const { return crc_;    }
+    inline Section_Shared get_data()       const { return data_;   }
+    inline Section_Shared get_header()     const { return header_; }
+    inline Section_Shared get_length()     const { return length_; }
+    inline Section_Shared get_footer()     const { return footer_; }
 
-    inline bool is_crc_include_header()    const { return is_crc_include_header_; }
-    inline bool is_crc_include_footer()    const { return is_crc_include_footer_; }
-    inline bool is_crc_include_length()    const { return is_crc_include_length_; }
-    inline bool is_crc_include_data()      const { return is_crc_include_data_; }
-    inline bool is_crc_include_cmd()       const { return is_crc_include_cmd_; }
-
+    inline bool is_cmd_exist()             const { return is_cmd_exist_; }
+    inline bool is_crc_exist()             const { return is_cmd_exist_; }
+    inline bool is_data_exist()            const { return is_data_exist_; }
     inline bool is_header_exist()          const { return is_header_exist_; }
     inline bool is_length_exist()          const { return is_length_exist_; }
     inline bool is_footer_exist()          const { return is_footer_exist_; }
-    inline bool is_data_exist()            const { return is_data_exist_; }
-    inline bool is_cmd_exist()             const { return is_cmd_exist_; }
-    inline bool is_crc_exist()             const { return is_cmd_exist_; }
 
-    inline std::shared_ptr<HeaderSection> get_header()     const { return header_; }
-    inline std::shared_ptr<LengthSection> get_length()     const { return length_; }
-    inline std::shared_ptr<FooterSection> get_footer()     const { return footer_; }
-    inline std::shared_ptr<DataSection>   get_data()       const { return data_;   }
-    inline std::shared_ptr<CMDSection>    get_cmd()        const { return cmd_;    }
-    inline std::shared_ptr<CRCSection>    get_crc()        const { return crc_;    }
+    inline bool is_crc_include_cmd()       const { return is_crc_include_cmd_; }
+    inline bool is_crc_include_data()      const { return is_crc_include_data_; }
+    inline bool is_crc_include_header()    const { return is_crc_include_header_; }
+    inline bool is_crc_include_length()    const { return is_crc_include_length_; }
+    inline bool is_crc_include_footer()    const { return is_crc_include_footer_; }
+
+    inline bool is_length_include_cmd()    const { return is_length_include_cmd_;    }
+    inline bool is_length_include_crc()    const { return is_length_include_crc_;    }
+    inline bool is_length_include_data()   const { return is_length_include_data_;   }
+    inline bool is_length_include_header() const { return is_length_include_header_; }
+    inline bool is_length_include_length() const { return is_length_include_length_; }
+    inline bool is_length_include_footer() const { return is_length_include_footer_; }
 
     virtual ~AbstractPacketStructure(){}
 
 private:
-    bool is_crc_ok (std::shared_ptr<CRCSection> crc) {
+    bool check_crc_info (const std::shared_ptr<CRCSection>& crc) {
+        PacketDefineErrors error = PacketDefineErrors::PACKET_OK;
             if (crc->include & PacketSections::Data && !is_data_exist_)
-                get_packet_define_error(PacketDefineErrors::CRC_Include_Data_But_Packet_Not);
-            if (crc->include & PacketSections::Footer && !is_footer_exist_)
-                get_packet_define_error(PacketDefineErrors::CRC_Include_Footer_But_Packet_Not);
-            if (crc->include & PacketSections::Header && !is_header_exist_)
-                get_packet_define_error(PacketDefineErrors::CRC_Include_Header_But_Packet_Not);
-            if (crc->include & PacketSections::CMD && !is_cmd_exist_)
-                get_packet_define_error(PacketDefineErrors::CRC_Include_CMD_But_Packet_Not);
-            if (crc->include & PacketSections::Length && !is_length_exist_)
-                get_packet_define_error(PacketDefineErrors::CRC_Include_Length_But_Packet_Not);
-            if (crc->crc_checker == nullptr)
-                get_packet_define_error(PacketDefineErrors::CMD_Factory_Null);
+                error = PacketDefineErrors::CRC_Include_Data_But_Packet_Not;
+            else if (crc->include & PacketSections::Footer && !is_footer_exist_)
+                error = PacketDefineErrors::CRC_Include_Footer_But_Packet_Not;
+            else if (crc->include & PacketSections::Header && !is_header_exist_)
+                error = PacketDefineErrors::CRC_Include_Header_But_Packet_Not;
+            else if (crc->include & PacketSections::CMD && !is_cmd_exist_)
+                error = PacketDefineErrors::CRC_Include_CMD_But_Packet_Not;
+            else if (crc->include & PacketSections::Length && !is_length_exist_)
+                error = PacketDefineErrors::CRC_Include_Length_But_Packet_Not;
+            else if (crc->crc_checker == nullptr)
+               error = PacketDefineErrors::CMD_Factory_Null;
         return true;
     }
     bool is_cmd_ok() {
 
         return true;
     }
-    bool is_length_include_ok (/*LengthSection* length*/) {
+    bool check_length_info (/*LengthSection* length*/) {
+        PacketDefineErrors error = PacketDefineErrors::PACKET_OK;
         if (length_->include & PacketSections::Data && !is_data_exist_)
-            get_packet_define_error(PacketDefineErrors::Length_Include_Data_But_Packet_Not);
-        if (length_->include & PacketSections::Footer && !is_footer_exist_)
-            get_packet_define_error(PacketDefineErrors::Length_Include_Footer_But_Packet_Not);
-        if (length_->include & PacketSections::Header && !is_header_exist_)
-            get_packet_define_error(PacketDefineErrors::Length_Include_Header_But_Packet_Not);
-        if (length_->include & PacketSections::CMD && !is_cmd_exist_)
-            get_packet_define_error(PacketDefineErrors::Length_Include_CMD_But_Packet_Not);
-        if (length_->include & PacketSections::CRC && !is_crc_exist_)
-            get_packet_define_error(PacketDefineErrors::Length_Include_CRC_But_Packet_Not);
+            error = PacketDefineErrors::Length_Include_Data_But_Packet_Not;
+        else if (length_->include & PacketSections::Footer && !is_footer_exist_)
+            error = PacketDefineErrors::Length_Include_Footer_But_Packet_Not;
+        else if (length_->include & PacketSections::Header && !is_header_exist_)
+            error = PacketDefineErrors::Length_Include_Header_But_Packet_Not;
+        else if (length_->include & PacketSections::CMD && !is_cmd_exist_)
+            error = PacketDefineErrors::Length_Include_CMD_But_Packet_Not;
+        else if (length_->include & PacketSections::CRC && !is_crc_exist_)
+            error = PacketDefineErrors::Length_Include_CRC_But_Packet_Not;
         return true;
     }
 
-    void set_crc_include_sections(CRCSection* crc_) {
+    void set_crc_include_sections(const std::shared_ptr<CRCSection>& crc_) {
         if (crc_->include & PacketSections::Data)
             is_crc_include_data_ = true;
         if (crc_->include & PacketSections::CMD)
@@ -327,47 +299,47 @@ private:
             is_crc_include_header_ = true;
     }
 
-    std::vector<std::shared_ptr<Section>> packet_;
 
-    std::shared_ptr<HeaderSection> header_ = nullptr;
-    std::shared_ptr<FooterSection> footer_ = nullptr;
-    std::shared_ptr<LengthSection> length_ = nullptr;
-    std::shared_ptr<DataSection> data_     = nullptr;
-    std::shared_ptr<CMDSection> cmd_       = nullptr;
-    std::shared_ptr<CRCSection> crc_       = nullptr;
-
-    bool is_header_exist_ = false;
-    bool is_footer_exist_ = false;
-    bool is_length_exist_ = false;
-    bool is_data_exist_   = false;
-    bool is_cmd_exist_    = false;
-    bool is_crc_exist_    = false;
-
-    bool is_crc_include_header_ = false;
-    bool is_crc_include_footer_ = false;
-    bool is_crc_include_length_ = false;
-    bool is_crc_include_data_   = false;
-    bool is_crc_include_cmd_    = false;
-
-    bool is_length_include_header_ = false;
-    bool is_length_include_footer_ = false;
-    bool is_length_include_length_ = false;
-    bool is_length_include_data_   = false;
-    bool is_length_include_cmd_    = false;
-    bool is_length_include_crc_    = false;
-
-    uint32_t header_size_ = 0;
-    uint32_t footer_size_ = 0;
-    uint32_t length_size_ = 0;
-    uint32_t data_size_   = 0;
     uint32_t cmd_size_    = 0;
     uint32_t crc_size_    = 0;
+    uint32_t data_size_   = 0;
+    uint32_t header_size_ = 0;
+    uint32_t length_size_ = 0;
+    uint32_t footer_size_ = 0;
+
+    bool is_cmd_exist_    = false;
+    bool is_crc_exist_    = false;
+    bool is_data_exist_   = false;
+    bool is_header_exist_ = false;
+    bool is_length_exist_ = false;
+    bool is_footer_exist_ = false;
+
+    bool is_crc_include_cmd_    = false;
+    bool is_crc_include_data_   = false;
+    bool is_crc_include_header_ = false;
+    bool is_crc_include_length_ = false;
+    bool is_crc_include_footer_ = false;
+
+    bool is_length_include_cmd_    = false;
+    bool is_length_include_crc_    = false;
+    bool is_length_include_data_   = false;
+    bool is_length_include_header_ = false;
+    bool is_length_include_length_ = false;
+    bool is_length_include_footer_ = false;
+
+    std::shared_ptr<CMDSection> cmd_       = nullptr;
+    std::shared_ptr<CRCSection> crc_       = nullptr;
+    std::shared_ptr<DataSection> data_     = nullptr;
+    std::shared_ptr<HeaderSection> header_ = nullptr;
+    std::shared_ptr<LengthSection> length_ = nullptr;
+    std::shared_ptr<FooterSection> footer_ = nullptr;
 };
 
 class AbstractMessageExtractor {
 public:
-    virtual std::shared_ptr<AbstractSerializableMessage> find_message() = 0;
+    virtual std::shared_ptr<AbstractPacketStructure> get_next_message() = 0;
     virtual std::shared_ptr<AbstractPacketStructure> get_packet_structure() const =  0;
+    virtual PacketDefineErrors get_packet_error() const = 0;
     virtual ~AbstractMessageExtractor() {}
 
 protected:

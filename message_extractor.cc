@@ -5,13 +5,13 @@
 namespace shp {
 namespace network {
 
-MessageExtractor::MessageExtractor(std::shared_ptr<AbstractPacketStructure> packet_structure)
+MessageExtractor::MessageExtractor(const std::shared_ptr<AbstractPacketStructure> &packet_structure)
     : packet_structure_(packet_structure)
 {
-    buffer_ = std::make_shared<BoundedBuffer<uint8_t>>(1024);
-    packet_structure_->init_packet();
+    buffer_ = std::make_shared<BoundedBuffer<uint8_t>>(2048);
+//    packet_structure_->init_packet();
     packet_sections_ = packet_structure_->get_packet_structure();
-    packet_structure_->is_packet_sections_correct(packet_sections_);
+//    packet_structure_->is_packet_sections_correct(packet_sections_);
 }
 
 void MessageExtractor::handle_header_section()
@@ -82,10 +82,10 @@ void MessageExtractor::handle_footer_section()
 }
 
 
-std::shared_ptr<AbstractSerializableMessage> MessageExtractor::find_message()
+std::shared_ptr<AbstractPacketStructure> MessageExtractor::get_next_message()
 {
-    std::shared_ptr<AbstractSerializableMessage> msg = nullptr;
-    bool is_find_message = false;
+    std::shared_ptr<AbstractPacketStructure> msg = nullptr;
+    bool is_get_next_message = false;
     //        std::map<PacketSections, std::string> crc_check_data;
     //        std::map<PacketSections, std::string> packet_sections;
     //        std::string footer;
@@ -101,7 +101,7 @@ std::shared_ptr<AbstractSerializableMessage> MessageExtractor::find_message()
     //        uint32_t data_len = 0;
     //        uint32_t data_size = 0;
 
-    while (!is_find_message) {
+    while (!is_get_next_message) {
 
         for (const auto &section : packet_sections_) {
             //            if (is_cmd_null || !is_footer_ok)
@@ -138,10 +138,15 @@ std::shared_ptr<AbstractSerializableMessage> MessageExtractor::find_message()
         //                }
         //                if (is_crc_ok && is_footer_ok && msg != nullptr) {
         //                    msg->deserialize((char*)data.data(), data_size);
-        //                    is_find_message = true;
+        //                    is_get_next_message = true;
         //                }
     }
     return msg;
+}
+
+PacketDefineErrors MessageExtractor::get_packet_error() const
+{
+
 }
 
 void MessageExtractor::find_header()
