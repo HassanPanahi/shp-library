@@ -13,14 +13,14 @@ using Section_Handler_FuncPtr = std::function<bool ()>;
 class MessageExtractor : public AbstractMessageExtractor
 {
 public:
-    MessageExtractor(const std::shared_ptr<AbstractPacketStructure>& packet_structure, const uint32_t buffer_size_bytes = 4096, const uint32_t packet_buffer_count = 128);
+    MessageExtractor(const std::vector<std::shared_ptr<Section>>& packet_structure, const uint32_t buffer_size_bytes = 4096, const uint32_t packet_buffer_count = 128);
     FindPacket get_next_message();
     std::shared_ptr<AbstractPacketStructure> get_packet_structure() const;
     PacketDefineErrors get_packet_error() const;
     void write_bytes(const uint8_t *data, const size_t size);
 
 private:
-    void add_wrong_header(const Section_Shared &header);
+    void add_wrong_header(const std::vector<uint8_t> &header);
 
     void start_extraction();
     void registre_commands();
@@ -53,7 +53,6 @@ private:
     std::shared_ptr<AbstractSerializableMessage> current_msg_;
     std::shared_ptr<AbstractBuffer<uint8_t>> buffer_;
     std::shared_ptr<AbstractBuffer<FindPacket>> buffer_packet_;
-
     std::shared_ptr<AbstractPacketStructure> packet_structure_;
     std::map<PacketSections, Section_Handler_FuncPtr> sections_map_;
 

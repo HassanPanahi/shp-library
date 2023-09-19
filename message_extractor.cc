@@ -5,20 +5,20 @@
 namespace shp {
 namespace network {
 
-MessageExtractor::MessageExtractor(const std::shared_ptr<AbstractPacketStructure> &packet_structure, const uint32_t buffer_size_bytes, const uint32_t packet_buffer_count)
-    : packet_structure_(packet_structure)
+MessageExtractor::MessageExtractor(const std::vector<std::shared_ptr<Section>> &packet_structure, const uint32_t buffer_size_bytes, const uint32_t packet_buffer_count)
 {
     buffer_ = std::make_shared<BoundedBuffer<uint8_t>>(buffer_size_bytes);
     packet_sections_ = packet_structure_->get_packet_structure();
     buffer_packet_ = std::make_shared<BoundedBuffer<FindPacket>>(packet_buffer_count);
+    packet_structure_ = std::make_shared<ClientPacket>(packet_structure);
     //    packet_structure_->init_packet();
     //    packet_structure_->is_packet_sections_correct(packet_sections_);
 }
 
-void MessageExtractor::add_wrong_header(const Section_Shared& header)
+void MessageExtractor::add_wrong_header(const std::vector<uint8_t>& header)
 {
     FindPacket wrong_header;
-    wrong_header.packet = header;
+    wrong_header.packet = std::make_shared<HeaderSection>(header);
     wrong_header.error = PacketErrors::Wrong_Footer;
     buffer_packet_->write(wrong_header);
 }
@@ -26,40 +26,40 @@ void MessageExtractor::add_wrong_header(const Section_Shared& header)
 PacketErrors MessageExtractor::handle_header_section()
 {
     uint32_t header_index = 0;
-    auto failed_header = std::make_shared<HeaderSection>();
-    auto find_header = std::make_shared<HeaderSection>();
-    packet_header_ = packet_structure_->get_header()->content;
+    std::vector<uint8_t> failed_header;
+    std::vector<uint8_t> find_header;
+    packet_header_ = packet_structure_->get_header()->get_header();
     const auto header_size = packet_header_.size();
-    find_header->content.resize(header_size);
+    find_header.resize(header_size);
     while (1) {
         if (header_index == header_size)
             break;
         uint8_t header = buffer_->read();
-        find_header->content.push_back(header);
+        find_header.push_back(header);
         if (packet_header_[header_index] == header) {
             header_index++;
         } else {
-            if (failed_header->content.size() >= header_size * 5) {
+            if (failed_header.size() >= header_size * 5) {
                 add_wrong_header(failed_header);
-                failed_header->content.clear();
+                failed_header.clear();
             }
-            failed_header->content.push_back(header);
+            failed_header.push_back(header);
             header_index = 0;
         }
     }
 
-    if (failed_header->content.size() > 0)
+    if (failed_header.size() > 0)
         add_wrong_header(failed_header);
-
-    find_packet_.push_back(find_header);
+    auto final_header = std::make_shared<HeaderSection>(find_header);
+    find_packet_.push_back(final_header);
     return PacketErrors::NO_ERROR;
 }
 
 PacketErrors MessageExtractor::handle_cmd_section()
 {
     PacketErrors result = PacketErrors::NO_ERROR;
-    packet_cmd_ = buffer_->read(packet_structure_->get_cmd()->size_bytes);
-    current_msg_ = packet_structure_->get_cmd()->msg_factory->build_message(packet_cmd_);
+    packet_cmd_ = buffer_->read(packet_structure_->get_cmd()->get_size());
+    current_msg_ = packet_structure_->get_cmd()->get_factory()->build_message(packet_cmd_);
     if (current_msg_ == nullptr)
         result = PacketErrors::Wrong_Header;
     return result;
@@ -69,22 +69,22 @@ PacketErrors MessageExtractor::handle_crc_section()
 {
     PacketErrors result = PacketErrors::NO_ERROR;
     auto crc_section = packet_structure_->get_crc();
-    packet_crc_ = buffer_->read(crc_section->size_bytes);
+    packet_crc_ = buffer_->read(crc_section->get_size());
 
     std::map<PacketSections, std::vector<uint8_t>> crc_data;
-    if (crc_section->include == PacketSections::CMD)
+    if (crc_section->get_include() == PacketSections::CMD)
         crc_data[PacketSections::CMD] = packet_cmd_;
 
-    if (crc_section->include == PacketSections::Data)
+    if (crc_section->get_include() == PacketSections::Data)
         crc_data[PacketSections::Data] = packet_data_;
 
-    if (crc_section->include == PacketSections::Header)
+    if (crc_section->get_include() == PacketSections::Header)
         crc_data[PacketSections::Header] = packet_header_;
 
-    if (crc_section->include == PacketSections::Length)
+    if (crc_section->get_include() == PacketSections::Length)
         crc_data[PacketSections::Length] = packet_length_;
 
-    bool is_ok = crc_section->crc_checker->is_valid(crc_data, packet_crc_);
+    bool is_ok = crc_section->get_crc_checker()->is_valid(crc_data, packet_crc_);
     if (!is_ok)
         result = PacketErrors::Wrong_CRC;
     return result;
@@ -94,8 +94,8 @@ PacketErrors MessageExtractor::handle_length_section()
 {
     //TODO(HP): check len va buffer len
     auto length_section = packet_structure_->get_length();
-    packet_length_ = buffer_->read(length_section->size_bytes);
-    packet_lenght_ = calc_len(packet_length_, length_section->size_bytes, extractor_->get_length()->is_first_byte_msb);
+    packet_length_ = buffer_->read(length_section->get_size());
+    packet_lenght_ = calc_len(packet_length_, length_section->get_size(), extractor_->get_length()->get_is_first_byte_msb());
     return PacketErrors::NO_ERROR;
 }
 
@@ -108,7 +108,7 @@ PacketErrors MessageExtractor::handle_data_section()
         if (current_msg_ != nullptr)
             data_size = current_msg_->get_serialize_size();
         else
-            data_size = packet_structure_->get_data()->fix_size_bytes;
+            data_size = packet_structure_->get_data()->get_size();
     }
     packet_data_ = buffer_->read(data_size);
     return PacketErrors::NO_ERROR;
@@ -124,8 +124,8 @@ PacketErrors MessageExtractor::handle_footer_section()
 {
     auto ret = PacketErrors::NO_ERROR;
     auto footer_section = packet_structure_->get_footer();
-    packet_footer_ = buffer_->read(footer_section->content.size());
-    if (footer_section->content != packet_footer_)
+    packet_footer_ = buffer_->read(footer_section->get_footer().size());
+    if (footer_section->get_footer() != packet_footer_)
         ret = PacketErrors::Wrong_Footer;
     return ret;
 }
