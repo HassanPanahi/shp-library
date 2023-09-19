@@ -28,15 +28,15 @@ PacketErrors MessageExtractor::handle_header_section()
     uint32_t header_index = 0;
     auto failed_header = std::make_shared<HeaderSection>();
     auto find_header = std::make_shared<HeaderSection>();
-    auto header_section = packet_structure_->get_header();
-    const auto header_size = header_section->content.size();
+    packet_header_ = packet_structure_->get_header()->content;
+    const auto header_size = packet_header_.size();
     find_header->content.resize(header_size);
     while (1) {
         if (header_index == header_size)
             break;
         uint8_t header = buffer_->read();
         find_header->content.push_back(header);
-        if (header_section->content[header_index] == header) {
+        if (packet_header_[header_index] == header) {
             header_index++;
         } else {
             if (failed_header->content.size() >= header_size * 5) {
@@ -58,8 +58,8 @@ PacketErrors MessageExtractor::handle_header_section()
 PacketErrors MessageExtractor::handle_cmd_section()
 {
     PacketErrors result = PacketErrors::NO_ERROR;
-    auto cmd = buffer_->read(packet_structure_->get_cmd()->size_bytes);
-    current_msg_ = packet_structure_->get_cmd()->msg_factory->build_message(cmd);
+    packet_cmd_ = buffer_->read(packet_structure_->get_cmd()->size_bytes);
+    current_msg_ = packet_structure_->get_cmd()->msg_factory->build_message(packet_cmd_);
     if (current_msg_ == nullptr)
         result = PacketErrors::Wrong_Header;
     return result;
@@ -67,16 +67,35 @@ PacketErrors MessageExtractor::handle_cmd_section()
 
 PacketErrors MessageExtractor::handle_crc_section()
 {
-    //    crc = get_next_bytes(extractor_->get_crc()->size_bytes);
+    PacketErrors result = PacketErrors::NO_ERROR;
+    auto crc_section = packet_structure_->get_crc();
+    packet_crc_ = buffer_->read(crc_section->size_bytes);
 
+    std::map<PacketSections, std::vector<uint8_t>> crc_data;
+    if (crc_section->include == PacketSections::CMD)
+        crc_data[PacketSections::CMD] = packet_cmd_;
+
+    if (crc_section->include == PacketSections::Data)
+        crc_data[PacketSections::Data] = packet_data_;
+
+    if (crc_section->include == PacketSections::Header)
+        crc_data[PacketSections::Header] = packet_header_;
+
+    if (crc_section->include == PacketSections::Length)
+        crc_data[PacketSections::Length] = packet_length_;
+
+    bool is_ok = crc_section->crc_checker->is_valid(crc_data, packet_crc_);
+    if (!is_ok)
+        result = PacketErrors::Wrong_CRC;
+    return result;
 }
 
 PacketErrors MessageExtractor::handle_length_section()
 {
     //TODO(HP): check len va buffer len
     auto length_section = packet_structure_->get_length();
-    auto length_data = buffer_->read(length_section->size_bytes);
-    packet_lenght_ = calc_len(length_data, length_section->size_bytes, extractor_->get_length()->is_first_byte_msb);
+    packet_length_ = buffer_->read(length_section->size_bytes);
+    packet_lenght_ = calc_len(packet_length_, length_section->size_bytes, extractor_->get_length()->is_first_byte_msb);
     return PacketErrors::NO_ERROR;
 }
 
@@ -97,12 +116,18 @@ PacketErrors MessageExtractor::handle_data_section()
 
 PacketErrors MessageExtractor::handle_other_section()
 {
-
+    auto ret = PacketErrors::NO_ERROR;
+    return ret;
 }
 
 PacketErrors MessageExtractor::handle_footer_section()
 {
-    //    footer = get_next_bytes(extractor_->get_footer()->content.size());
+    auto ret = PacketErrors::NO_ERROR;
+    auto footer_section = packet_structure_->get_footer();
+    packet_footer_ = buffer_->read(footer_section->content.size());
+    if (footer_section->content != packet_footer_)
+        ret = PacketErrors::Wrong_Footer;
+    return ret;
 }
 
 
@@ -118,7 +143,8 @@ std::shared_ptr<AbstractPacketStructure> MessageExtractor::get_packet_structure(
 
 PacketDefineErrors MessageExtractor::get_packet_error() const
 {
-
+    auto ret = PacketDefineErrors::PACKET_OK;
+    return ret;
 }
 
 void MessageExtractor::write_bytes(const uint8_t *data, const size_t size)
@@ -202,8 +228,6 @@ std::string MessageExtractor::get_next_bytes(uint32_t size)
         data[i] = static_cast<char>(buffer_->read());
     return data;
 }
-
-
 
 void MessageExtractor::registre_commands()
 {

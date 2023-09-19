@@ -32,7 +32,9 @@ public:
     //! \return true mean the crc match with data.
     //!
     //!
-    virtual bool is_valid(const std::map<PacketSections, std::string>& input_data, const std::string& data) = 0;
+    //TODO(HP): change std::map to std::vector<sections> ... bcus it can will be many headers of other sections
+    virtual bool is_valid(const std::map<PacketSections, std::vector<uint8_t>>& input_data, const std::vector<uint8_t>& data) = 0;
+    ~AbstractCRC() {}
 };
 
 //!
@@ -96,7 +98,7 @@ public:
 };
 
 struct HeaderSection : public Section {
-    std::string content;
+    std::vector<uint8_t> content;
 public:
     PacketSections get_type() const { return PacketSections::Header;}
 };
@@ -125,7 +127,7 @@ public:
 };
 
 struct FooterSection : public Section {
-    std::string content;
+    std::vector<uint8_t> content;
 public:
     PacketSections get_type() const { return PacketSections::Footer;}
 };

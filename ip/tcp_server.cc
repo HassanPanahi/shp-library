@@ -41,7 +41,7 @@ void TCPServer::notify_me_for_new_connection(std::function<void (TCPClientShared
 void TCPServer::send_to_all_clients(const char *data, size_t size)
 {
     clients_mutex_.lock();
-    for(auto client: all_clients_map_) {
+    for(const auto &client: all_clients_map_) {
         if (client.second->is_connected()) {
             client.second->send(data, size);
         } else {

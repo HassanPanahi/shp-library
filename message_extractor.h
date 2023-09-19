@@ -39,7 +39,13 @@ private:
     PacketErrors handle_footer_section();
 
     uint32_t packet_lenght_;
+    std::vector<uint8_t> packet_header_;
     std::vector<uint8_t> packet_data_;
+    std::vector<uint8_t> packet_cmd_;
+    std::vector<uint8_t> packet_length_;
+    std::vector<uint8_t> packet_footer_;
+    std::vector<uint8_t> packet_other_;
+    std::vector<uint8_t> packet_crc_;
 
     std::vector<Section_Shared> packet_sections_;
     std::vector<Section_Shared> find_packet_;
