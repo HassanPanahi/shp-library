@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 #include <thread>
 
-#include "tcp_client.h"
+#include "../ip/tcp_client.h"
 
 void tcp_client()
 {

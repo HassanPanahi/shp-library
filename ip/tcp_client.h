@@ -6,8 +6,8 @@
 #include <boost/thread.hpp>
 
 #include <boost/mpl/size.hpp>
-#include "abstract_buffer.h"
-#include "abstract_message.h"
+#include "../buffer/abstract_buffer.h"
+#include "../abstract_message.h"
 
 #define MAX_LENGTH (1 * 1024 *  1024)
 

@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 
-#include "bounded_buffer.h"
+#include "../buffer/bounded_buffer.h"
 
 void buffer_test()
 {

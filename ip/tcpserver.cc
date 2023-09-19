@@ -97,7 +97,7 @@ void TCPServer::stop_ping(const int connection_number)
 {
     auto it = ping_classes_map_.find(connection_number);
     if (it != ping_classes_map_.end()) {
-            it->second->stop_ping();
+//            it->second->stop_ping();
             std::cout << "Stop ping for id: " << connection_number << std::endl;
     }
 }

@@ -11,9 +11,9 @@
 #include <boost/thread.hpp>
 #include <boost/signals2.hpp>
 
-#include "abstract_buffer.h"
-#include "buffer_template.h"
-#include "abstract_message.h"
+#include "../buffer/abstract_buffer.h"
+#include "../buffer/buffer_template.h"
+#include "../abstract_message.h"
 
 typedef boost::shared_ptr<boost::asio::serial_port> SerialPortShared;
 
@@ -54,12 +54,12 @@ public:
     bool start(const std::string &port, SerialBaudRate baud_rate= SerialBaudRate::_115200);
     void stop();
 
-    void set_buffer(std::shared_ptr<AbstractBuffer> buffer);
-    void set_buffer_size(uint32_t size);
+//    void set_buffer(std::shared_ptr<AbstractBuffer> buffer);
+//    void set_buffer_size(uint32_t size);
 
-    void extract_messages(std::shared_ptr<AbstractPacketStructure> extractor);
-    std::shared_ptr<AbstractSerializableMessage> get_next_packet();
-    BufferError get_next_bytes(uint8_t *data, const uint32_t len, const uint32_t timeout_ms = 0);
+//    void extract_messages(std::shared_ptr<AbstractPacketStructure> extractor);
+//    std::shared_ptr<AbstractSerializableMessage> get_next_packet();
+//    BufferError get_next_bytes(uint8_t *data, const uint32_t len, const uint32_t timeout_ms = 0);
     uint8_t get_next_byte();
     std::string get_all_bytes();
     uint32_t get_remain_bytes() const;
@@ -92,15 +92,15 @@ private:
     uint32_t buffer_size_;
     bool is_set_buffer_;
     bool is_set_extractor_;
-    Buffer<std::shared_ptr<AbstractSerializableMessage>> messages_buffer_;
+//    Buffer<std::shared_ptr<AbstractSerializableMessage>> messages_buffer_;
     boost::signals2::signal <void (const char* data, size_t size)> data_received_connections_;
     boost::signals2::signal <void (size_t)> disconnect_connections_;
     bool is_buffered_data_;
     std::array<uint8_t, SERIAL_PORT_READ_BUF_SIZE> data_;
     boost::thread_group thread_group_;
 
-    std::shared_ptr<AbstractBuffer> buffer_;
-    std::shared_ptr<AbstractPacketStructure> serial_message_extractor_;
+//    std::shared_ptr<AbstractBuffer> buffer_;
+//    std::shared_ptr<AbstractPacketStructure> serial_message_extractor_;
 };
 
 } // namespace peripheral

@@ -2,7 +2,7 @@
 #include <iostream>
 #include <thread>
 #include <boost/asio/detail/posix_thread.hpp>
-#include "bounded_buffer.h"
+#include "../buffer/bounded_buffer.h"
 
 namespace shp {
 namespace network {

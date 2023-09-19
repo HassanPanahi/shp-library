@@ -2,7 +2,7 @@
 #include <iostream>
 #include <dirent.h>
 
-#include "bounded_buffer.h"
+#include "../buffer/bounded_buffer.h"
 
 namespace hp {
 namespace peripheral {
@@ -11,7 +11,7 @@ SerialPort::SerialPort(void)
 {
     is_set_buffer_ = false;
     buffer_size_ = 2 * 1024 * 1024;
-    buffer_ = nullptr;
+//    buffer_ = nullptr;
     is_set_extractor_ = false;
     is_buffered_data_ = true;
     is_running_ = false;
@@ -125,8 +125,8 @@ bool SerialPort::start(const std::string& port, SerialBaudRate baud_rate)
     }
 
     is_running_  = true;
-    if (!is_set_buffer_)
-        buffer_ = std::make_shared<CircularBuffer>(buffer_size_);
+//    if (!is_set_buffer_)
+//        buffer_ = std::make_shared<CircularBuffer>(buffer_size_);
     if (is_set_extractor_) {
         thread_group_.create_thread(boost::bind(&SerialPort::extract_message, this));
     }
@@ -150,47 +150,47 @@ void SerialPort::stop()
     io_service_.reset();
 }
 
-void SerialPort::set_buffer(std::shared_ptr<AbstractBuffer> buffer)
-{
-    is_set_buffer_ = true;
-    buffer_ = buffer;
-}
+//void SerialPort::set_buffer(std::shared_ptr<AbstractBuffer> buffer)
+//{
+//    is_set_buffer_ = true;
+//    buffer_ = buffer;
+//}
 
-void SerialPort::set_buffer_size(uint32_t size)
-{
-    buffer_size_ = size;
-}
+//void SerialPort::set_buffer_size(uint32_t size)
+//{
+//    buffer_size_ = size;
+//}
 
-void SerialPort::extract_messages(std::shared_ptr<AbstractPacketStructure> extractor)
-{
-    serial_message_extractor_ = extractor;
-    is_set_extractor_ = true;
-}
+//void SerialPort::extract_messages(std::shared_ptr<AbstractPacketStructure> extractor)
+//{
+//    serial_message_extractor_ = extractor;
+//    is_set_extractor_ = true;
+//}
 
-std::shared_ptr<AbstractSerializableMessage> SerialPort::get_next_packet()
-{
-    return messages_buffer_.get_next_packet();
-}
+//std::shared_ptr<AbstractSerializableMessage> SerialPort::get_next_packet()
+//{
+//    return messages_buffer_.get_next_packet();
+//}
 
-BufferError SerialPort::get_next_bytes(uint8_t *data, const uint32_t len, const uint32_t timeout_ms)
-{
-    return buffer_->read(data, len, timeout_ms);
-}
+//BufferError SerialPort::get_next_bytes(uint8_t *data, const uint32_t len, const uint32_t timeout_ms)
+//{
+//    return buffer_->read(data, len, timeout_ms);
+//}
 
-uint8_t SerialPort::get_next_byte()
-{
-    return buffer_->read_next_byte();
+//uint8_t SerialPort::get_next_byte()
+//{
+//    return buffer_->read_next_byte();
 
-}
-std::string SerialPort::get_all_bytes()
-{
-    return buffer_->get_all_bytes();
-}
+//}
+//std::string SerialPort::get_all_bytes()
+//{
+//    return buffer_->get_all_bytes();
+//}
 
-uint32_t SerialPort::get_remain_bytes() const
-{
-    return buffer_->get_remain_bytes();
-}
+//uint32_t SerialPort::get_remain_bytes() const
+//{
+//    return buffer_->get_remain_bytes();
+//}
 
 void SerialPort::notify_me_when_disconnected(std::function<void (int)> func)
 {
@@ -260,7 +260,7 @@ void SerialPort::handle_read_data(const boost::system::error_code& ec, size_t by
     if (!is_buffered_data_) {
         data_received_connections_((const char*)data_.data(), bytes_transferred);
     } else {
-        buffer_->write(data_.data(), bytes_transferred);
+//        buffer_->write(data_.data(), bytes_transferred);
     }
     async_read_some();
 }

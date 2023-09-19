@@ -1,42 +1,53 @@
 #ifndef TCPMESSAGEEXTRACTOR_H
 #define TCPMESSAGEEXTRACTOR_H
 
-#include "abstract_buffer.h"
+#include "buffer/abstract_buffer.h"
 #include "abstract_message.h"
 #include "functional"
 
 namespace shp {
 namespace network {
 
-using Section_Handler_FuncPtr = std::function<void ()>;
+using Section_Handler_FuncPtr = std::function<bool ()>;
 
 class MessageExtractor : public AbstractMessageExtractor
 {
 public:
-    MessageExtractor(const std::shared_ptr<AbstractPacketStructure>& packet_structure, const uint32_t buffer_size_bytes = 4096);
-    std::shared_ptr<AbstractPacketStructure> get_next_message();
-    std::shared_ptr<AbstractPacketStructure> get_packet_structure() const { return packet_structure_; }
+    MessageExtractor(const std::shared_ptr<AbstractPacketStructure>& packet_structure, const uint32_t buffer_size_bytes = 4096, const uint32_t packet_buffer_count = 128);
+    FindPacket get_next_message();
+    std::shared_ptr<AbstractPacketStructure> get_packet_structure() const;
     PacketDefineErrors get_packet_error() const;
     void write_bytes(const uint8_t *data, const size_t size);
 
 private:
+    void add_wrong_header(const Section_Shared &header);
+
+    void start_extraction();
     void registre_commands();
     void find_header();
-    uint32_t calc_len(const char *data, uint32_t size, bool is_msb);
+    uint32_t calc_len(const std::vector<uint8_t> data, const uint32_t size, bool is_msb);
     std::string get_next_bytes(uint32_t size);
     template<class Containter>
     void fill_packet(std::string& source, const Containter &data);
 
-    void handle_header_section();
-    void handle_cmd_section();
-    void handle_crc_section();
-    void handle_length_section();
-    void handle_data_section();
-    void handle_other_section();
-    void handle_footer_section();
+    PacketErrors handle_cmd_section();
+    PacketErrors handle_crc_section();
+    PacketErrors handle_data_section();
+    PacketErrors handle_other_section();
+    PacketErrors handle_header_section();
+    PacketErrors handle_length_section();
+    PacketErrors handle_footer_section();
 
+    uint32_t packet_lenght_;
+    std::vector<uint8_t> packet_data_;
+
+    std::vector<Section_Shared> packet_sections_;
+    std::vector<Section_Shared> find_packet_;
+    std::vector<Section_Shared> wrong_packet_;
+    std::shared_ptr<AbstractSerializableMessage> current_msg_;
     std::shared_ptr<AbstractBuffer<uint8_t>> buffer_;
-    std::vector<std::shared_ptr<Section>> packet_sections_;
+    std::shared_ptr<AbstractBuffer<FindPacket>> buffer_packet_;
+
     std::shared_ptr<AbstractPacketStructure> packet_structure_;
     std::map<PacketSections, Section_Handler_FuncPtr> sections_map_;
 

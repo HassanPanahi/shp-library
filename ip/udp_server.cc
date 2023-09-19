@@ -29,20 +29,20 @@ int UDPServer::send(const std::string &data)
 
 }
 
-void UDPServer::set_buffer(std::shared_ptr<AbstractBuffer> buffer)
-{
+//void UDPServer::set_buffer(std::shared_ptr<AbstractBuffer> buffer)
+//{
 
-}
+//}
 
-void UDPServer::extract_messages(std::shared_ptr<AbstractMessageExtractor> extractor)
-{
+//void UDPServer::extract_messages(std::shared_ptr<AbstractMessageExtractor> extractor)
+//{
 
-}
+//}
 
-void UDPServer::set_buffer_size(uint64_t size_bytes)
-{
+//void UDPServer::set_buffer_size(uint64_t size_bytes)
+//{
 
-}
+//}
 
 void UDPServer::handle_read(const boost::system::error_code &erro, size_t bytes_transferred)
 {

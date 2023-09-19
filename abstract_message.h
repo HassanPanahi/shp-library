@@ -6,7 +6,7 @@
 #include <memory>
 #include <vector>
 
-#include "abstract_buffer.h"
+#include "buffer/abstract_buffer.h"
 
 namespace shp {
 namespace network {
@@ -74,7 +74,7 @@ public:
     //! \param cmd is a section that use in packet
     //! \return  must return a serializablemessage for save all messages
     //!
-    virtual std::shared_ptr<AbstractSerializableMessage> build_message(const std::string cmd) = 0;
+    virtual std::shared_ptr<AbstractSerializableMessage> build_message(const std::vector<uint8_t> cmd) = 0;
     virtual ~AbstractMessageFactory() {}
 };
 
@@ -89,10 +89,23 @@ template<class T> inline T& operator&= (T& a, T b) { return static_cast<T>(a &= 
 template<class T> inline T& operator^= (T& a, T b) { return static_cast<T>(a ^= b); }
 
 
-class Section{
+struct Section{
 public:
     virtual PacketSections get_type() const = 0;
     virtual ~Section() {}
+};
+
+struct HeaderSection : public Section {
+    std::string content;
+public:
+    PacketSections get_type() const { return PacketSections::Header;}
+};
+
+struct CMDSection : public Section {
+    uint32_t size_bytes = 0;
+    std::shared_ptr<AbstractMessageFactory> msg_factory;
+public:
+    PacketSections get_type() const { return PacketSections::CMD;}
 };
 
 struct CRCSection : public Section {
@@ -111,24 +124,12 @@ public:
     PacketSections get_type() const { return PacketSections::Length;}
 };
 
-struct HeaderSection : public Section {
-    std::string content;
-public:
-    PacketSections get_type() const { return PacketSections::Header;}
-};
-
 struct FooterSection : public Section {
     std::string content;
 public:
     PacketSections get_type() const { return PacketSections::Footer;}
 };
 
-struct CMDSection : public Section {
-    uint32_t size_bytes = 0;
-    std::shared_ptr<AbstractMessageFactory> msg_factory;
-public:
-    PacketSections get_type() const { return PacketSections::CMD;}
-};
 
 struct DataSection : public Section {
     uint32_t fix_size_bytes = 0;
@@ -145,10 +146,13 @@ public:
 
 enum class PacketErrors{
     //TODO(HP): better way is throw exception and in what explain error (developer dont need to implement these codes)
+    NO_ERROR,
     Wrong_CRC,
     Wrong_Footer,
     Wrong_CMD,
+    Wrong_CMD_FACTORY,
     Wrong_Length_Include,
+    Wrong_Header
 
 };
 
@@ -223,12 +227,12 @@ public:
         }
     }
 
-    inline Section_Shared get_cmd()        const { return cmd_;    }
-    inline Section_Shared get_crc()        const { return crc_;    }
-    inline Section_Shared get_data()       const { return data_;   }
+    inline std::shared_ptr<CMDSection> get_cmd()        const { return cmd_;    }
+    inline std::shared_ptr<CRCSection> get_crc()        const { return crc_;    }
+    inline std::shared_ptr<DataSection> get_data()       const { return data_;   }
     inline std::shared_ptr<HeaderSection> get_header()     const { return header_; }
-    inline Section_Shared get_length()     const { return length_; }
-    inline Section_Shared get_footer()     const { return footer_; }
+    inline std::shared_ptr<LengthSection> get_length()     const { return length_; }
+    inline std::shared_ptr<FooterSection> get_footer()     const { return footer_; }
 
     inline bool is_cmd_exist()             const { return is_cmd_exist_; }
     inline bool is_crc_exist()             const { return is_cmd_exist_; }
@@ -255,18 +259,18 @@ public:
 private:
     bool check_crc_info (const std::shared_ptr<CRCSection>& crc) {
         PacketDefineErrors error = PacketDefineErrors::PACKET_OK;
-            if (crc->include & PacketSections::Data && !is_data_exist_)
-                error = PacketDefineErrors::CRC_Include_Data_But_Packet_Not;
-            else if (crc->include & PacketSections::Footer && !is_footer_exist_)
-                error = PacketDefineErrors::CRC_Include_Footer_But_Packet_Not;
-            else if (crc->include & PacketSections::Header && !is_header_exist_)
-                error = PacketDefineErrors::CRC_Include_Header_But_Packet_Not;
-            else if (crc->include & PacketSections::CMD && !is_cmd_exist_)
-                error = PacketDefineErrors::CRC_Include_CMD_But_Packet_Not;
-            else if (crc->include & PacketSections::Length && !is_length_exist_)
-                error = PacketDefineErrors::CRC_Include_Length_But_Packet_Not;
-            else if (crc->crc_checker == nullptr)
-               error = PacketDefineErrors::CMD_Factory_Null;
+        if (crc->include & PacketSections::Data && !is_data_exist_)
+            error = PacketDefineErrors::CRC_Include_Data_But_Packet_Not;
+        else if (crc->include & PacketSections::Footer && !is_footer_exist_)
+            error = PacketDefineErrors::CRC_Include_Footer_But_Packet_Not;
+        else if (crc->include & PacketSections::Header && !is_header_exist_)
+            error = PacketDefineErrors::CRC_Include_Header_But_Packet_Not;
+        else if (crc->include & PacketSections::CMD && !is_cmd_exist_)
+            error = PacketDefineErrors::CRC_Include_CMD_But_Packet_Not;
+        else if (crc->include & PacketSections::Length && !is_length_exist_)
+            error = PacketDefineErrors::CRC_Include_Length_But_Packet_Not;
+        else if (crc->crc_checker == nullptr)
+            error = PacketDefineErrors::CMD_Factory_Null;
         return true;
     }
     bool is_cmd_ok() {
@@ -337,9 +341,14 @@ private:
     std::shared_ptr<FooterSection> footer_ = nullptr;
 };
 
+struct FindPacket {
+    Section_Shared packet;
+    PacketErrors error;
+};
+
 class AbstractMessageExtractor {
 public:
-    virtual std::shared_ptr<AbstractPacketStructure> get_next_message() = 0;
+    virtual FindPacket get_next_message() = 0;
     virtual std::shared_ptr<AbstractPacketStructure> get_packet_structure() const =  0;
     virtual void write_bytes(const uint8_t* data, const size_t size) = 0;
     virtual PacketDefineErrors get_packet_error() const = 0;
