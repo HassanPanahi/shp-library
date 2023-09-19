@@ -75,22 +75,24 @@ public:
     //! \return  must return a serializablemessage for save all messages
     //!
     virtual std::shared_ptr<AbstractSerializableMessage> build_message(const std::string cmd) = 0;
+    virtual ~AbstractMessageFactory() {}
 };
 
 
 
-template<class T> inline T operator~ (T a) { return (T)~(int)a; }
-template<class T> inline T operator| (T a, T b) { return (T)((int)a | (int)b); }
-template<class T> inline T operator& (T a, T b) { return (T)((int)a & (int)b); }
-template<class T> inline T operator^ (T a, T b) { return (T)((int)a ^ (int)b); }
-template<class T> inline T& operator|= (T& a, T b) { return (T&)((int&)a |= (int)b); }
-template<class T> inline T& operator&= (T& a, T b) { return (T&)((int&)a &= (int)b); }
-template<class T> inline T& operator^= (T& a, T b) { return (T&)((int&)a ^= (int)b); }
+template<class T> inline T operator~ (T a) { return static_cast<T>(~a); }
+template<class T> inline T operator| (T a, T b) { return static_cast<T>(a | b); }
+template<class T> inline T operator& (T a, T b) { return static_cast<T>(a & b); }
+template<class T> inline T operator^ (T a, T b) { return static_cast<T>(a ^ b); }
+template<class T> inline T& operator|= (T& a, T b) { return static_cast<T>(a |= b); }
+template<class T> inline T& operator&= (T& a, T b) { return static_cast<T>(a &= b); }
+template<class T> inline T& operator^= (T& a, T b) { return static_cast<T>(a ^= b); }
 
 
-struct Section{
+class Section{
 public:
     virtual PacketSections get_type() const = 0;
+    virtual ~Section() {}
 };
 
 struct CRCSection : public Section {
@@ -339,6 +341,7 @@ class AbstractMessageExtractor {
 public:
     virtual std::shared_ptr<AbstractPacketStructure> get_next_message() = 0;
     virtual std::shared_ptr<AbstractPacketStructure> get_packet_structure() const =  0;
+    virtual void write_bytes(const uint8_t* data, const size_t size) = 0;
     virtual PacketDefineErrors get_packet_error() const = 0;
     virtual ~AbstractMessageExtractor() {}
 

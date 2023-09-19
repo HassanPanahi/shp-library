@@ -5,13 +5,14 @@
 namespace shp {
 namespace network {
 
-MessageExtractor::MessageExtractor(const std::shared_ptr<AbstractPacketStructure> &packet_structure)
+MessageExtractor::MessageExtractor(const std::shared_ptr<AbstractPacketStructure> &packet_structure, const uint32_t buffer_size_bytes)
     : packet_structure_(packet_structure)
 {
-    buffer_ = std::make_shared<BoundedBuffer<uint8_t>>(2048);
-//    packet_structure_->init_packet();
+    buffer_ = std::make_shared<BoundedBuffer<uint8_t>>(buffer_size_bytes);
     packet_sections_ = packet_structure_->get_packet_structure();
-//    packet_structure_->is_packet_sections_correct(packet_sections_);
+
+    //    packet_structure_->init_packet();
+    //    packet_structure_->is_packet_sections_correct(packet_sections_);
 }
 
 void MessageExtractor::handle_header_section()
@@ -21,7 +22,7 @@ void MessageExtractor::handle_header_section()
     while(1) {
         if (header_index == header_section->content.size())
             break;
-        char header = buffer_->read();
+        uint8_t header = buffer_->read();
         if (header_section->content[header_index] == header)
             header_index++;
         else {
@@ -32,44 +33,44 @@ void MessageExtractor::handle_header_section()
 
 void MessageExtractor::handle_cmd_section()
 {
-//    cmd = get_next_bytes(extractor_->get_cmd()->size_bytes);
-//    msg = extractor_->get_cmd()->msg_factory->build_message(cmd.data());
-//    if (msg == nullptr) {
-//        packet_sections[PacketSections::Header] = extractor_->get_header()->content;
-//        packet_sections[PacketSections::CMD] = cmd;
-//        packet_structure_->packet_section_error(PacketErrors::Wrong_CMD, packet_sections);
-//        is_cmd_null = true;
-//        continue;
-//    }
+    //    cmd = get_next_bytes(extractor_->get_cmd()->size_bytes);
+    //    msg = extractor_->get_cmd()->msg_factory->build_message(cmd.data());
+    //    if (msg == nullptr) {
+    //        packet_sections[PacketSections::Header] = extractor_->get_header()->content;
+    //        packet_sections[PacketSections::CMD] = cmd;
+    //        packet_structure_->packet_section_error(PacketErrors::Wrong_CMD, packet_sections);
+    //        is_cmd_null = true;
+    //        continue;
+    //    }
 }
 
 void MessageExtractor::handle_crc_section()
 {
-//    crc = get_next_bytes(extractor_->get_crc()->size_bytes);
+    //    crc = get_next_bytes(extractor_->get_crc()->size_bytes);
 
 }
 
 void MessageExtractor::handle_length_section()
 {
-//    len = get_next_bytes(extractor_->get_length()->size_bytes);
-//    uint32_t len_val = calc_len(len.data(), extractor_->get_length()->size_bytes, extractor_->get_length()->is_first_byte_msb);
-//    data_len = len_val;
-//    can_find_length = true;
+    //    len = get_next_bytes(extractor_->get_length()->size_bytes);
+    //    uint32_t len_val = calc_len(len.data(), extractor_->get_length()->size_bytes, extractor_->get_length()->is_first_byte_msb);
+    //    data_len = len_val;
+    //    can_find_length = true;
 }
 
 void MessageExtractor::handle_data_section()
 {
-//    if (extractor_->is_length_exist()) {
-//        data.resize(data_len);
-//        data_size = data_len;
-//    } else {
-//        if (msg != nullptr)
-//            data_size = msg->get_serialize_size();
-//        else
-//            data_size = extractor_->get_data()->fix_size_bytes;
-//        data.resize(data_size);
-//    }
-//    buffer_->read((uint8_t*)data.data(), data_size);
+    //    if (extractor_->is_length_exist()) {
+    //        data.resize(data_len);
+    //        data_size = data_len;
+    //    } else {
+    //        if (msg != nullptr)
+    //            data_size = msg->get_serialize_size();
+    //        else
+    //            data_size = extractor_->get_data()->fix_size_bytes;
+    //        data.resize(data_size);
+    //    }
+    //    buffer_->read((uint8_t*)data.data(), data_size);
 }
 
 void MessageExtractor::handle_other_section()
@@ -79,7 +80,7 @@ void MessageExtractor::handle_other_section()
 
 void MessageExtractor::handle_footer_section()
 {
-//    footer = get_next_bytes(extractor_->get_footer()->content.size());
+    //    footer = get_next_bytes(extractor_->get_footer()->content.size());
 }
 
 
@@ -135,25 +136,30 @@ PacketDefineErrors MessageExtractor::get_packet_error() const
 
 }
 
+void MessageExtractor::write_bytes(const uint8_t *data, const size_t size)
+{
+    buffer_->write(data, size);
+}
+
 void MessageExtractor::find_header()
 {
 
 }
 
 
-int MessageExtractor::calc_len(const char * data, uint32_t size, bool is_msb)
+uint32_t MessageExtractor::calc_len(const char * data, uint32_t size, bool is_msb)
 {
-    int len = 0;
+    uint32_t len = 0;
     switch (size) {
     case 1 : {
-        len = (int)(*data);
+        len = *reinterpret_cast<uint32_t*>(*data);
         break;
     }
     case 2 : {
         if (is_msb)
-            len = int((unsigned char)(data[0]) << 8 | (unsigned char)(data[1]));
+            len = static_cast<uint32_t>((data[0]) << 8 | (data[1]));
         else
-            len = int((unsigned char)(data[1]) << 8 | (unsigned char)(data[0]));
+            len = static_cast<uint32_t>((data[1]) << 8 | (data[0]));
         break;
     }
     case 3 : {
@@ -161,9 +167,9 @@ int MessageExtractor::calc_len(const char * data, uint32_t size, bool is_msb)
     }
     case 4: {
         if (is_msb)
-            len =  int((unsigned char)(data[0]) << 24 | (unsigned char)(data[1]) << 16 |  (unsigned char)(data[2]) << 8 | (unsigned char)(data[3]));
+            len =  static_cast<uint32_t>((data[0]) << 24 | (data[1]) << 16 | (data[2]) << 8 | (data[3]));
         else
-            len =  int((unsigned char)(data[3]) << 24 | (unsigned char)(data[2]) << 16 |  (unsigned char)(data[1]) << 8 | (unsigned char)(data[0]));
+            len =  static_cast<uint32_t>((data[3]) << 24 | (data[2]) << 16 | (data[1]) << 8 | (data[0]));
 
     }
     case 5 : {
@@ -188,7 +194,7 @@ std::string MessageExtractor::get_next_bytes(uint32_t size)
     std::string data;
     data.resize(size);
     for (uint32_t i = 0; i < size; i++)
-        data[i] = buffer_->read();
+        data[i] = static_cast<char>(buffer_->read());
     return data;
 }
 
