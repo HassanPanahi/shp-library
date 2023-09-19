@@ -19,7 +19,7 @@ MessageExtractor::MessageExtractor(const std::vector<std::shared_ptr<Section>> &
 void MessageExtractor::add_wrong_header(const std::vector<uint8_t>& header)
 {
     FindPacket wrong_header;
-    wrong_header.packet.push_back(std::make_shared<HeaderSection>(header));
+    wrong_header.packet.push_back({PacketSections::Header, header});
     wrong_header.error = PacketErrors::Wrong_Footer;
     buffer_packet_->write(wrong_header);
 }
@@ -52,7 +52,7 @@ PacketErrors MessageExtractor::handle_header_section()
     if (failed_header.size() > 0)
         add_wrong_header(failed_header);
     auto final_header = std::make_shared<HeaderSection>(find_header);
-    current_packet_.packet.push_back(final_header);
+    current_packet_.packet.push_back({PacketSections::Header, find_header});
     return PacketErrors::NO_ERROR;
 }
 
@@ -63,7 +63,7 @@ PacketErrors MessageExtractor::handle_cmd_section()
     current_msg_ = packet_structure_->get_cmd()->get_factory()->build_message(packet_cmd_);
     if (current_msg_ == nullptr)
         result = PacketErrors::Wrong_Header;
-//    current_packet_.packet.push_back(std::make_shared<CMDSection>(nullptr, epacket_))
+    current_packet_.packet.push_back({PacketSections::CMD, packet_cmd_});
     return result;
 }
 
@@ -72,6 +72,7 @@ PacketErrors MessageExtractor::handle_crc_section()
     PacketErrors result = PacketErrors::NO_ERROR;
     auto crc_section = packet_structure_->get_crc();
     packet_crc_ = buffer_->read(crc_section->get_size());
+    current_packet_.packet.push_back({PacketSections::CRC, packet_crc_});
 
     std::map<PacketSections, std::vector<uint8_t>> crc_data;
     if (crc_section->get_include() == PacketSections::CMD)
@@ -98,6 +99,7 @@ PacketErrors MessageExtractor::handle_length_section()
     auto length_section = packet_structure_->get_length();
     packet_length_ = buffer_->read(length_section->get_size());
     packet_lenght_ = calc_len(packet_length_, length_section->get_size(), packet_structure_->get_length()->get_is_first_byte_msb());
+    current_packet_.packet.push_back({PacketSections::Length, packet_length_});
     return PacketErrors::NO_ERROR;
 }
 
@@ -113,6 +115,8 @@ PacketErrors MessageExtractor::handle_data_section()
             data_size = packet_structure_->get_data()->get_size();
     }
     packet_data_ = buffer_->read(data_size);
+    current_packet_.packet.push_back({PacketSections::Data, packet_data_});
+
     return PacketErrors::NO_ERROR;
 }
 
@@ -129,6 +133,8 @@ PacketErrors MessageExtractor::handle_footer_section()
     packet_footer_ = buffer_->read(footer_section->get_footer().size());
     if (footer_section->get_footer() != packet_footer_)
         ret = PacketErrors::Wrong_Footer;
+    current_packet_.packet.push_back({PacketSections::Footer, packet_footer_});
+
     return ret;
 }
 
@@ -156,6 +162,8 @@ void MessageExtractor::write_bytes(const uint8_t *data, const size_t size)
 void MessageExtractor::start_extraction()
 {
     while (1) {
+        current_packet_.error = PacketErrors::NO_ERROR;
+        current_packet_.packet.clear();
         for (const auto &section : packet_structure_->get_packet_structure()) {
             auto type = section->get_type();
             auto command_section_itr = sections_map_.find(type);
@@ -164,8 +172,10 @@ void MessageExtractor::start_extraction()
             } else {
                 auto section_func_ptr = command_section_itr->second;
                 auto is_find = section_func_ptr();
-                if (is_find != PacketErrors::NO_ERROR)
+                if (is_find != PacketErrors::NO_ERROR) {
+                    current_packet_.error = is_find;
                     buffer_packet_->write(current_packet_);
+                }
             }
         }
         buffer_packet_->write(current_packet_);

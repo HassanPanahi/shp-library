@@ -388,7 +388,7 @@ private:
 };
 
 struct FindPacket {
-    std::vector<Section_Shared> packet;
+    std::vector<std::pair<PacketSections, std::vector<uint8_t>>> packet;
     PacketErrors error;
 };
 
