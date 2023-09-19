@@ -99,7 +99,7 @@ public:
 
 class HeaderSection : public Section {
 public:
-    HeaderSection(const std::vector<uint8_t> header): header_(header) {}
+    HeaderSection(const std::vector<uint8_t>& header): header_(header) {}
     std::vector<uint8_t> get_header() const { return header_;}
     PacketSections get_type() const { return PacketSections::Header;}
 private:
@@ -149,7 +149,7 @@ private:
 
 struct FooterSection : public Section {
 public:
-    FooterSection(std::vector<uint8_t> footer) :
+    FooterSection(const std::vector<uint8_t>& footer) :
         footer_(footer) {}
     std::vector<uint8_t> get_footer() const { return footer_; }
     PacketSections get_type() const { return PacketSections::Footer;}
@@ -379,14 +379,16 @@ private:
 class ClientPacket : public AbstractPacketStructure
 {
 public:
-    ClientPacket(const std::vector<std::shared_ptr<Section>>& sections) : sections_(sections) {}
+    ClientPacket(const std::vector<std::shared_ptr<Section>>& sections) : sections_(sections) {
+        analyze_packet_sections(sections_);
+    }
     std::vector<std::shared_ptr<Section>> get_packet_structure() const { return sections_;}
 private:
     std::vector<std::shared_ptr<Section>> sections_;
 };
 
 struct FindPacket {
-    Section_Shared packet;
+    std::vector<Section_Shared> packet;
     PacketErrors error;
 };
 
@@ -397,9 +399,6 @@ public:
     virtual void write_bytes(const uint8_t* data, const size_t size) = 0;
     virtual PacketDefineErrors get_packet_error() const = 0;
     virtual ~AbstractMessageExtractor() {}
-
-protected:
-    AbstractPacketStructure* extractor_;
 };
 
 } // namespace peripheral

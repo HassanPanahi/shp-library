@@ -6,11 +6,13 @@
 #include "../buffer/bounded_buffer.h"
 #include "message_extractor.h"
 
+using namespace shp::network;
+
 void buffer_test()
 {
     BoundedBuffer<uint8_t> buffer(6);
 
-    std::vector<uint8_t> values;
+    std::vector<uint8_t> values(6);
     values[0] = 0xff;
     values[1] = 0xbb;
     values[2] = 0x01;
@@ -20,11 +22,14 @@ void buffer_test()
 
     buffer.write(values);
 
-//    std::vector<shp::network::Section_Shared> sections;
-//    auto header_section = std::make_shared<>()
+    std::vector<Section_Shared> sections;
+    auto header = std::make_shared<HeaderSection>(std::vector<uint8_t>{0xff, 0xbb});
+    sections.push_back(header);
 
-
-
+    MessageExtractor extrator(sections);
+    extrator.write_bytes(values.data(), values.size());
+    auto mesg = extrator.get_next_message();
+    std::cout << "finished" << std::endl;
 
 }
 

@@ -5,10 +5,12 @@
 #include "abstract_message.h"
 #include "functional"
 
+#include <thread>
+
 namespace shp {
 namespace network {
 
-using Section_Handler_FuncPtr = std::function<bool ()>;
+using Section_Handler_FuncPtr = std::function<PacketErrors ()>;
 
 class MessageExtractor : public AbstractMessageExtractor
 {
@@ -47,14 +49,16 @@ private:
     std::vector<uint8_t> packet_other_;
     std::vector<uint8_t> packet_crc_;
 
-    std::vector<Section_Shared> packet_sections_;
-    std::vector<Section_Shared> find_packet_;
-    std::vector<Section_Shared> wrong_packet_;
+//    std::vector<Section_Shared> packet_sections_;
     std::shared_ptr<AbstractSerializableMessage> current_msg_;
     std::shared_ptr<AbstractBuffer<uint8_t>> buffer_;
     std::shared_ptr<AbstractBuffer<FindPacket>> buffer_packet_;
     std::shared_ptr<AbstractPacketStructure> packet_structure_;
     std::map<PacketSections, Section_Handler_FuncPtr> sections_map_;
+    std::thread analyze_thread_;
+
+    FindPacket current_packet_;
+
 
 };
 

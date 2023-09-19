@@ -8,9 +8,10 @@ namespace network {
 MessageExtractor::MessageExtractor(const std::vector<std::shared_ptr<Section>> &packet_structure, const uint32_t buffer_size_bytes, const uint32_t packet_buffer_count)
 {
     buffer_ = std::make_shared<BoundedBuffer<uint8_t>>(buffer_size_bytes);
-    packet_sections_ = packet_structure_->get_packet_structure();
     buffer_packet_ = std::make_shared<BoundedBuffer<FindPacket>>(packet_buffer_count);
     packet_structure_ = std::make_shared<ClientPacket>(packet_structure);
+    registre_commands();
+    analyze_thread_ = std::thread(&MessageExtractor::start_extraction, this);
     //    packet_structure_->init_packet();
     //    packet_structure_->is_packet_sections_correct(packet_sections_);
 }
@@ -18,7 +19,7 @@ MessageExtractor::MessageExtractor(const std::vector<std::shared_ptr<Section>> &
 void MessageExtractor::add_wrong_header(const std::vector<uint8_t>& header)
 {
     FindPacket wrong_header;
-    wrong_header.packet = std::make_shared<HeaderSection>(header);
+    wrong_header.packet.push_back(std::make_shared<HeaderSection>(header));
     wrong_header.error = PacketErrors::Wrong_Footer;
     buffer_packet_->write(wrong_header);
 }
@@ -51,7 +52,7 @@ PacketErrors MessageExtractor::handle_header_section()
     if (failed_header.size() > 0)
         add_wrong_header(failed_header);
     auto final_header = std::make_shared<HeaderSection>(find_header);
-    find_packet_.push_back(final_header);
+    current_packet_.packet.push_back(final_header);
     return PacketErrors::NO_ERROR;
 }
 
@@ -62,6 +63,7 @@ PacketErrors MessageExtractor::handle_cmd_section()
     current_msg_ = packet_structure_->get_cmd()->get_factory()->build_message(packet_cmd_);
     if (current_msg_ == nullptr)
         result = PacketErrors::Wrong_Header;
+//    current_packet_.packet.push_back(std::make_shared<CMDSection>(nullptr, epacket_))
     return result;
 }
 
@@ -95,7 +97,7 @@ PacketErrors MessageExtractor::handle_length_section()
     //TODO(HP): check len va buffer len
     auto length_section = packet_structure_->get_length();
     packet_length_ = buffer_->read(length_section->get_size());
-    packet_lenght_ = calc_len(packet_length_, length_section->get_size(), extractor_->get_length()->get_is_first_byte_msb());
+    packet_lenght_ = calc_len(packet_length_, length_section->get_size(), packet_structure_->get_length()->get_is_first_byte_msb());
     return PacketErrors::NO_ERROR;
 }
 
@@ -130,7 +132,6 @@ PacketErrors MessageExtractor::handle_footer_section()
     return ret;
 }
 
-
 FindPacket MessageExtractor::get_next_message()
 {
     return buffer_packet_->read();
@@ -155,20 +156,20 @@ void MessageExtractor::write_bytes(const uint8_t *data, const size_t size)
 void MessageExtractor::start_extraction()
 {
     while (1) {
-        FindPacket msg;
-        for (const auto &section : packet_sections_) {
+        for (const auto &section : packet_structure_->get_packet_structure()) {
             auto type = section->get_type();
             auto command_section_itr = sections_map_.find(type);
             if (command_section_itr == sections_map_.end()) {
                 std::cout << "command doesn't found" << std::endl;
             } else {
                 auto section_func_ptr = command_section_itr->second;
-                bool is_find = section_func_ptr();
-                if (!is_find)
-                    buffer_packet_->write(msg);
+                auto is_find = section_func_ptr();
+                if (is_find != PacketErrors::NO_ERROR)
+                    buffer_packet_->write(current_packet_);
             }
         }
-        buffer_packet_->write(msg);
+        buffer_packet_->write(current_packet_);
+        int a = 0;
     }
 }
 
@@ -231,15 +232,13 @@ std::string MessageExtractor::get_next_bytes(uint32_t size)
 
 void MessageExtractor::registre_commands()
 {
-    //    sections_map_[PacketSections::Header] = std::bind();
-    //    sections_map_[PacketSections::Length ] = std::bind();
-    //        sections_map_[PacketSections::CMD ] = std::bind();
-
-    //        sections_map_[PacketSections::Data] = std::bind();
-    //        sections_map_[PacketSections::CRC] = std::bind();
-    //        sections_map_[PacketSections::Footer] = std::bind();
-    //        sections_map_[PacketSections::Other] = std::bind();
-
+    sections_map_[PacketSections::CMD] = std::bind(&MessageExtractor::handle_cmd_section, this);;
+    sections_map_[PacketSections::CRC] = std::bind(&MessageExtractor::handle_crc_section, this);;
+    sections_map_[PacketSections::Data] = std::bind(&MessageExtractor::handle_data_section, this);;
+    sections_map_[PacketSections::Other] = std::bind(&MessageExtractor::handle_other_section, this);;
+    sections_map_[PacketSections::Header] = std::bind(&MessageExtractor::handle_header_section, this);
+    sections_map_[PacketSections::Length] = std::bind(&MessageExtractor::handle_length_section, this);;
+    sections_map_[PacketSections::Footer] = std::bind(&MessageExtractor::handle_footer_section, this);;
 }
 
 
