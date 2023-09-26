@@ -133,7 +133,7 @@ LibErros BoundedBuffer<T>::erase_buffer()
 template<class T>
 uint32_t BoundedBuffer<T>::get_remain()
 {
-    return capacity() - size();
+    return capacity() - (capacity() - size());
 }
 
 template <class T>

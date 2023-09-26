@@ -76,7 +76,7 @@ public:
     //! \param cmd is a section that use in packet
     //! \return  must return a serializablemessage for save all messages
     //!
-    virtual std::shared_ptr<AbstractSerializableMessage> build_message(const std::vector<uint8_t> cmd) = 0;
+    virtual std::shared_ptr<AbstractSerializableMessage> build_message(const std::vector<uint8_t> cmd_data) = 0;
     virtual ~AbstractMessageFactory() {}
 };
 

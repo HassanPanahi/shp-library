@@ -11,6 +11,7 @@ MessageExtractor::MessageExtractor(const std::vector<std::shared_ptr<Section>> &
     buffer_packet_ = std::make_shared<BoundedBuffer<FindPacket>>(packet_buffer_count);
     packet_structure_ = std::make_shared<ClientPacket>(packet_structure);
     registre_commands();
+    is_running_ = true;
     analyze_thread_ = std::thread(&MessageExtractor::start_extraction, this);
     //    packet_structure_->init_packet();
     //    packet_structure_->is_packet_sections_correct(packet_sections_);
@@ -27,32 +28,28 @@ void MessageExtractor::add_wrong_header(const std::vector<uint8_t>& header)
 PacketErrors MessageExtractor::handle_header_section()
 {
     uint32_t header_index = 0;
+    FindPacket current_packet;
+
     std::vector<uint8_t> failed_header;
-    std::vector<uint8_t> find_header;
     packet_header_ = packet_structure_->get_header()->get_header();
     const auto header_size = packet_header_.size();
-    find_header.resize(header_size);
     while (1) {
         if (header_index == header_size)
             break;
         uint8_t header = buffer_->read();
-        find_header.push_back(header);
         if (packet_header_[header_index] == header) {
             header_index++;
         } else {
-            if (failed_header.size() >= header_size * 5) {
-                add_wrong_header(failed_header);
-                failed_header.clear();
-            }
             failed_header.push_back(header);
             header_index = 0;
         }
+        if ((header_index != 0 && failed_header.size() > 0) || buffer_->get_remain() == 0 || failed_header.size() == header_size * 5) {
+            add_wrong_header(failed_header);
+            failed_header.clear();
+        }
     }
-
-    if (failed_header.size() > 0)
-        add_wrong_header(failed_header);
-    auto final_header = std::make_shared<HeaderSection>(find_header);
-    current_packet_.packet.push_back({PacketSections::Header, find_header});
+    auto final_header = std::make_shared<HeaderSection>(packet_header_);
+    current_packet_.packet.push_back({PacketSections::Header, packet_header_});
     return PacketErrors::NO_ERROR;
 }
 
@@ -159,9 +156,16 @@ void MessageExtractor::write_bytes(const uint8_t *data, const size_t size)
     buffer_->write(data, size);
 }
 
+MessageExtractor::~MessageExtractor()
+{
+    is_running_ = false;
+    if (analyze_thread_.joinable())
+        analyze_thread_.join();
+}
+
 void MessageExtractor::start_extraction()
 {
-    while (1) {
+    while (is_running_) {
         current_packet_.error = PacketErrors::NO_ERROR;
         current_packet_.packet.clear();
         for (const auto &section : packet_structure_->get_packet_structure()) {

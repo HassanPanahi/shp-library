@@ -20,7 +20,7 @@ public:
     std::shared_ptr<AbstractPacketStructure> get_packet_structure() const;
     PacketDefineErrors get_packet_error() const;
     void write_bytes(const uint8_t *data, const size_t size);
-
+    ~MessageExtractor();
 private:
     void add_wrong_header(const std::vector<uint8_t> &header);
 
@@ -59,7 +59,7 @@ private:
 
     FindPacket current_packet_;
 
-
+    bool is_running_;
 };
 
 } // namespace peripheral
